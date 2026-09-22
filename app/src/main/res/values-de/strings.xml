@@ -3,7 +3,7 @@
     <!-- ============================================================
          Shared / common UI  (core/presentation/components)
          ============================================================ -->
-    <string name="app_name">Der-Gebetsruf</string>
+    <string name="app_name">Al-Azan</string>
     <string name="cancel">Abbrechen</string>
     <string name="confirm">Bestätigen</string>
     <string name="close">Schließen</string>
