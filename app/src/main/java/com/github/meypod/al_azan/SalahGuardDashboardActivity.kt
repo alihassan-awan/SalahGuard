@@ -36,6 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,7 +95,7 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = tab == index,
                                 onClick = { tab = index },
-                                icon = { Text(listOf("⌂", "◷", "▤", "⚙")[index], color = mint, fontSize = 22.sp) },
+                                icon = { Text(listOf("⌂", "◷", "▤", "⚙")[index], color = if (tab == index) gold else mint, fontSize = 22.sp) },
                                 label = { Text(label, color = Color.White) },
                             )
                         }
@@ -138,6 +141,7 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                                     Text("TODAY'S PRAYERS", color = mint, fontWeight = FontWeight.SemiBold)
                                     Spacer(Modifier.height(7.dp))
                                     Text("$completed / 5 verified", color = Color.White, fontSize = 24.sp)
+                                    LinearProgressIndicator(progress = { completed / 5f }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), color = mint)
                                     Text("A saved time does not mean the prayer was performed.",
                                         color = Color.LightGray, fontSize = 12.sp)
                                 }
@@ -149,17 +153,38 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                         }
                         1 -> {
                             Header("Prayer Times", "Location, calculation and editable timings")
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Live Location (GPS)", color = Color.White, fontSize = 16.sp)
-                                Switch(checked = liveLocation, onCheckedChange = {
-                                    liveLocation = it
-                                    prefs.edit().putBoolean("live_location", it).apply()
-                                    if (it) detectLocation()
-                                })
+                            Card(colors = CardDefaults.cardColors(containerColor = surface),
+                                shape = RoundedCornerShape(18.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Column {
+                                            Text("◉  Live Location (GPS)", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                            Text("Detect your city", color = Color.LightGray, fontSize = 12.sp)
+                                        }
+                                        Switch(checked = liveLocation, onCheckedChange = {
+                                            liveLocation = it
+                                            prefs.edit().putBoolean("live_location", it).apply()
+                                            if (it) detectLocation()
+                                        })
+                                    }
+                                    HorizontalDivider(color = Color(0xFF335259))
+                                    Text(prefs.getString("gps_city", null) ?: "No detected city yet",
+                                        color = mint, fontSize = 17.sp)
+                                    Text(locationStatus, color = Color.LightGray, fontSize = 12.sp)
+                                    OutlinedButton(onClick = { detail = "Location Detection"; detectLocation() },
+                                        modifier = Modifier.fillMaxWidth()) { Text("Refresh GPS location") }
+                                }
                             }
-                            Text(locationStatus, color = Color.LightGray)
-                            OutlinedButton(onClick = { detail = "Location Detection"; detectLocation() }, modifier = Modifier.fillMaxWidth()) { Text("Locate my city") }
-                            OutlinedButton(onClick = { detail = "Calculation Method" }, modifier = Modifier.fillMaxWidth()) { Text("Calculation method & Asr settings") }
+                            Card(colors = CardDefaults.cardColors(containerColor = surface),
+                                shape = RoundedCornerShape(18.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                                    Text("Calculation method", color = gold, fontWeight = FontWeight.SemiBold)
+                                    Text("Manual timetable active", color = Color.White, fontSize = 16.sp)
+                                    OutlinedButton(onClick = { detail = "Calculation Method" },
+                                        modifier = Modifier.fillMaxWidth()) { Text("Calculation & Asr settings") }
+                                }
+                            }
                             Card(colors = CardDefaults.cardColors(containerColor = surface),
                                 shape = RoundedCornerShape(16.dp)) {
                                 Text("MANUAL MODE • Times are saved locally. Real alarms are not yet linked.",
@@ -169,31 +194,30 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                             prayers.forEachIndexed { i, prayer -> PrayerRow(today, prayer, examples[i], true) }
                         }
                         2 -> {
-                            Header("Prayer History", "Daily progress and reports")
+                            Header("Prayer History", "Your Salah accountability records")
+                            Card(colors = CardDefaults.cardColors(containerColor = surface), shape = RoundedCornerShape(18.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(22.dp)) {
+                                    Text("TODAY • $today", color = gold, fontWeight = FontWeight.Bold)
+                                    Text("$completed of 5 verified", color = Color.White, fontSize = 26.sp)
+                                    LinearProgressIndicator(progress = { completed / 5f }, color = mint,
+                                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
+                                    Text("Verification and historical records are not yet integrated.", color = Color.LightGray, fontSize = 12.sp)
+                                }
+                            }
                             OutlinedButton(onClick = { detail = "Daily History" }, modifier = Modifier.fillMaxWidth()) { Text("Today’s prayer records") }
                             OutlinedButton(onClick = { detail = "Weekly & Monthly Reports" }, modifier = Modifier.fillMaxWidth()) { Text("Weekly / Monthly Reports") }
                             Text("Real verification and report calculations are not yet connected.", color = Color.LightGray)
                         }
                         else -> {
                             Header("Settings", "Prayer alerts, calculation and developer tools")
+                            Text("NOTIFICATIONS & ALARM", color = gold, fontWeight = FontWeight.Bold)
                             OutlinedButton(onClick = { detail = "Alarm Settings" }, modifier = Modifier.fillMaxWidth()) { Text("Notifications • Alarm • Snooze") }
+                            Text("LOCATION & CALCULATION", color = gold, fontWeight = FontWeight.Bold)
                             OutlinedButton(onClick = { detail = "Location Detection" }, modifier = Modifier.fillMaxWidth()) { Text("Location & GPS") }
+                            OutlinedButton(onClick = { detail = "Calculation Method" }, modifier = Modifier.fillMaxWidth()) { Text("Prayer calculation method") }
+                            Text("DEVELOPER TOOLS", color = gold, fontWeight = FontWeight.Bold)
                             OutlinedButton(onClick = { detail = "Developer Test Alarm" }, modifier = Modifier.fillMaxWidth()) { Text("Developer test alarm screen") }
-                            Button(onClick = {
-                                Toast.makeText(this@SalahGuardDashboardActivity,
-                                    SalahGuardTestAlarm.schedule(this@SalahGuardDashboardActivity),
-                                    Toast.LENGTH_LONG).show()
-                            }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Test alarm in 60 seconds")
-                            }
-                            Text("Location & calculation", color = Color.White, fontSize = 20.sp)
-                            Text(locationStatus, color = Color.LightGray)
-                            Button(onClick = { detectLocation() }, enabled = !locationBusy,
-                                modifier = Modifier.fillMaxWidth()) {
-                                Text(if (locationBusy) "Detecting location..." else "Detect current city (GPS)")
-                            }
-                            Text("GPS detection does not yet calculate or schedule prayer times. Use Times tab for manual timings.",
-                                color = Color.LightGray)
+                            Text("No real prayer statuses are altered by developer tests.", color = Color.LightGray, fontSize = 12.sp)
                         }
                     }
                 }
