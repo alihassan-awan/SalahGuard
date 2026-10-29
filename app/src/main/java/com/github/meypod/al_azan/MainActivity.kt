@@ -3,12 +3,14 @@ package com.github.meypod.al_azan
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.setContent
@@ -68,14 +70,17 @@ class MainActivity : AppCompatActivity() {
                         appIntroDone = initialSettings.appIntroDone,
                         startingRoute = startingRoute,
                     )
-                    Button(
-                        onClick = {
+                    Column(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Button(onClick = {
+                            startActivity(Intent(this@MainActivity, SalahGuardDashboardActivity::class.java))
+                        }) { Text("SalahGuard — My 5 Prayers") }
+                        Button(onClick = {
                             val result = SalahGuardTestAlarm.schedule(this@MainActivity)
                             Toast.makeText(this@MainActivity, result, Toast.LENGTH_LONG).show()
-                        },
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp),
-                    ) {
-                        Text("Test Alarm (60s)")
+                        }) { Text("Test Alarm (60s)") }
                     }
                 }
             }
