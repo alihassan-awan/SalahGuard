@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.*
+import com.github.meypod.al_azan.SalahGuardTestAlarm
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import com.example.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -35,6 +38,7 @@ fun TestAlarmScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     var isCountdownActive by remember { mutableStateOf(false) }
@@ -50,7 +54,6 @@ fun TestAlarmScreen(
             }
             if (isCountdownActive && secondsLeft == 0) {
                 isCountdownActive = false
-                onTriggerAlarmNow()
             }
         }
     }
@@ -121,7 +124,11 @@ fun TestAlarmScreen(
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, SalahCardBorder, RoundedCornerShape(16.dp))
                     .clickable {
-                        isCountdownActive = !isCountdownActive
+                        if (!isCountdownActive) {
+                            val result = SalahGuardTestAlarm.schedule(context)
+                            Toast.makeText(context, result, Toast.LENGTH_LONG).show()
+                            isCountdownActive = true
+                        }
                         if (isCountdownActive) {
                             scope.launch {
                                 snackbarHostState.showSnackbar("Alarm scheduled to trigger in 60s")
@@ -182,7 +189,10 @@ fun TestAlarmScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, SalahCardBorder, RoundedCornerShape(16.dp))
-                    .clickable(onClick = onTriggerAlarmNow)
+                    .clickable(onClick = {
+                        SalahGuardTestAlarm.show(context)
+                        onTriggerAlarmNow()
+                    })
                     .testTag("trigger_now_card"),
                 shape = RoundedCornerShape(16.dp),
                 color = SalahCardBg
