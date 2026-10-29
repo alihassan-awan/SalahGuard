@@ -9,10 +9,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
 import android.os.SystemClock
+import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -76,8 +79,37 @@ object SalahGuardTestAlarm {
 
 class SalahGuardTestAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action == "com.github.meypod.al_azan.TEST_ALARM") {
-            SalahGuardTestAlarm.show(context)
-        }
+        if (intent?.action != "com.github.meypod.al_azan.TEST_ALARM") return
+        SalahGuardTestAlarm.show(context)
+        // Temporary smoke test: play the ALARM audio stream independently from
+        // notification-channel sound configuration. Stop automatically after 8 seconds.
+        val pending = goAsync()
+        Thread {
+            var player: MediaPlayer? = null
+            try {
+                val alarmUri = RingtoneManager.getActualDefaultRingtoneUri(
+                    context, RingtoneManager.TYPE_ALARM
+                ) ?: Settings.System.DEFAULT_ALARM_ALERT_URI
+                player = MediaPlayer().apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    setDataSource(context, alarmUri)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+                Thread.sleep(8_000)
+            } catch (e: Exception) {
+                Log.e("SalahGuardTestAlarm", "Test audio failed", e)
+            } finally {
+                runCatching { player?.stop() }
+                player?.release()
+                pending.finish()
+            }
+        }.start()
     }
 }
