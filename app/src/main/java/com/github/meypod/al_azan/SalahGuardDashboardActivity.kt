@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar
 
 /**
  * SalahGuard UI Phase 1: Compose dashboard with no overlay or hard-coded prayer completions.
@@ -58,6 +59,7 @@ class SalahGuardDashboardActivity : ComponentActivity() {
     private val navy = Color(0xFF071B22)
     private val surface = Color(0xFF12343B)
     private val mint = Color(0xFF38D6A0)
+    private val gold = Color(0xFFFFC15A)
     private var refresh by mutableStateOf(0)
     private var tab by mutableStateOf(0)
     private var locationStatus by mutableStateOf("Location not detected")
@@ -97,26 +99,54 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text("SalahGuard", color = mint, fontSize = 27.sp, fontWeight = FontWeight.Bold)
-                    Text(today, color = Color.LightGray)
+                    Text(today + "  •  " + (prefs.getString("gps_city", null) ?: "Manual timetable"), color = Color.LightGray)
                     when (tab) {
                         0 -> {
+                            val now = Calendar.getInstance()
+                            val currentMinute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+                            val next = prayers.indices.map { i ->
+                                val clock = (prefs.getString("time_${prayers[i]}", examples[i]) ?: examples[i]).split(":")
+                                val minute = clock[0].toInt() * 60 + clock[1].toInt()
+                                Triple(i, minute, (minute - currentMinute + 1440) % 1440)
+                            }.minByOrNull { it.third }
                             Card(colors = CardDefaults.cardColors(containerColor = surface),
-                                shape = RoundedCornerShape(20.dp)) {
-                                Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                                shape = RoundedCornerShape(22.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(22.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("NEXT PRAYER • MANUAL SCHEDULE", color = mint,
+                                        fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    if (next != null) {
+                                        Text(prayers[next.first], color = Color.White,
+                                            fontSize = 31.sp, fontWeight = FontWeight.Bold)
+                                        Text(formatTime(next.second), color = gold, fontSize = 25.sp)
+                                        Text("In ${next.third / 60}h ${next.third % 60}m  •  Based on saved times",
+                                            color = Color.LightGray, fontSize = 13.sp)
+                                    }
+                                }
+                            }
+                            Card(colors = CardDefaults.cardColors(containerColor = surface),
+                                shape = RoundedCornerShape(18.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(18.dp)) {
                                     Text("TODAY'S PRAYERS", color = mint, fontWeight = FontWeight.SemiBold)
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("$completed / 5 confirmed", color = Color.White, fontSize = 26.sp)
-                                    Text("Unconfirmed does not mean missed or completed.",
+                                    Spacer(Modifier.height(7.dp))
+                                    Text("$completed / 5 verified", color = Color.White, fontSize = 24.sp)
+                                    Text("A saved time does not mean the prayer was performed.",
                                         color = Color.LightGray, fontSize = 12.sp)
                                 }
                             }
                             prayers.forEachIndexed { i, prayer -> PrayerRow(today, prayer, examples[i]) }
                             Button(onClick = { tab = 1 }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Edit prayer times")
+                                Text("Manage prayer timings")
                             }
                         }
                         1 -> {
-                            Header("Prayer timetable", "These are local manual times, not yet connected to alarms.")
+                            Header("Prayer timetable", "Edit your timings. Saving a time never marks a prayer completed.")
+                            Card(colors = CardDefaults.cardColors(containerColor = surface),
+                                shape = RoundedCornerShape(16.dp)) {
+                                Text("MANUAL MODE • Times are saved locally. Real alarms are not yet linked.",
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    color = gold, fontSize = 13.sp)
+                            }
                             prayers.forEachIndexed { i, prayer -> PrayerRow(today, prayer, examples[i], true) }
                         }
                         2 -> {
@@ -159,7 +189,7 @@ class SalahGuardDashboardActivity : ComponentActivity() {
         val value = prefs.getString("time_$prayer", fallback) ?: fallback
         val status = prefs.getString("status_${today}_${prayer}", "Unconfirmed") ?: "Unconfirmed"
         Card(
-            modifier = Modifier.fillMaxWidth().clickable { tab = 1 },
+            modifier = if (editable) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().clickable { tab = 1 },
             colors = CardDefaults.cardColors(containerColor = surface),
             shape = RoundedCornerShape(15.dp),
         ) {
@@ -167,10 +197,11 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text(prayer, color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
-                    Text(status, color = Color.LightGray, fontSize = 12.sp)
+                    Text(if (editable) "Time saved locally" else if (status == "Unconfirmed") "Prayer not yet verified" else status,
+                        color = if (editable) mint else Color.LightGray, fontSize = 12.sp)
                 }
                 Column {
-                    Text(value, color = mint, fontSize = 19.sp)
+                    Text(formatTime(value.split(":")[0].toInt() * 60 + value.split(":")[1].toInt()), color = gold, fontSize = 19.sp)
                     if (editable) {
                         Text("Edit time", color = Color.White, modifier = Modifier.clickable {
                             val t = value.split(":")
@@ -184,6 +215,13 @@ class SalahGuardDashboardActivity : ComponentActivity() {
             }
         }
     }
+    private fun formatTime(minutes: Int): String {
+        val hour = (minutes / 60) % 24
+        val minute = minutes % 60
+        return "%d:%02d %s".format(Locale.US, if (hour % 12 == 0) 12 else hour % 12,
+            minute, if (hour < 12) "AM" else "PM")
+    }
+
     private fun detectLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
             PackageManager.PERMISSION_GRANTED &&
