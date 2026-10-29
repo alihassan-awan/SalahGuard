@@ -4,7 +4,7 @@
     <!-- ============================================================
          Shared / common UI  (core/presentation/components)
          ============================================================ -->
-    <string name="app_name">Al-Azan</string>
+    <string name="app_name">SalahGuard</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="close">Close</string>
