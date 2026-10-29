@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
+import com.github.meypod.al_azan.R
 import com.example.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -61,7 +61,7 @@ fun SplashScreen(
     ) {
         // Night sky background image with moon and mosque silhouette
         Image(
-            painter = painterResource(id = R.drawable.splash_bg),
+            painter = painterResource(id = R.drawable.mosque),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -105,7 +105,7 @@ fun SplashScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.salahguard_icon),
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
                     contentDescription = "SalahGuard Logo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
