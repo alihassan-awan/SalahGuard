@@ -113,43 +113,7 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                         DetailScreen()
                     } else when (tab) {
                         0 -> {
-                            val now = Calendar.getInstance()
-                            val currentMinute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-                            val next = prayers.indices.map { i ->
-                                val clock = (prefs.getString("time_${prayers[i]}", examples[i]) ?: examples[i]).split(":")
-                                val minute = clock[0].toInt() * 60 + clock[1].toInt()
-                                Triple(i, minute, (minute - currentMinute + 1440) % 1440)
-                            }.minByOrNull { it.third }
-                            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF075449)),
-                                shape = RoundedCornerShape(22.dp)) {
-                                Column(Modifier.fillMaxWidth().padding(22.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("NEXT PRAYER • MANUAL SCHEDULE", color = mint,
-                                        fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    if (next != null) {
-                                        Text(prayers[next.first], color = Color.White,
-                                            fontSize = 31.sp, fontWeight = FontWeight.Bold)
-                                        Text(formatTime(next.second), color = gold, fontSize = 25.sp)
-                                        Text("In ${next.third / 60}h ${next.third % 60}m  •  Based on saved times",
-                                            color = Color.LightGray, fontSize = 13.sp)
-                                    }
-                                }
-                            }
-                            Card(colors = CardDefaults.cardColors(containerColor = surface),
-                                shape = RoundedCornerShape(18.dp)) {
-                                Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                                    Text("TODAY'S PRAYERS", color = mint, fontWeight = FontWeight.SemiBold)
-                                    Spacer(Modifier.height(7.dp))
-                                    Text("$completed / 5 verified", color = Color.White, fontSize = 24.sp)
-                                    LinearProgressIndicator(progress = { completed / 5f }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), color = mint)
-                                    Text("A saved time does not mean the prayer was performed.",
-                                        color = Color.LightGray, fontSize = 12.sp)
-                                }
-                            }
-                            prayers.forEachIndexed { i, prayer -> PrayerRow(today, prayer, examples[i]) }
-                            Button(onClick = { tab = 1 }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Manage prayer timings")
-                            }
+                            SalahGuardMockupHome(prefs = prefs, openTimes = { tab = 1 })
                         }
                         1 -> {
                             Header("Prayer Times", "Location, calculation and editable timings")
