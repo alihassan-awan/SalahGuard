@@ -65,24 +65,10 @@ class MainActivity : AppCompatActivity() {
             val settings by settingsRepository.data.collectAsState(initial = initialSettings)
 
             AlAzanTheme(settings.themeColor, settings.displayScale) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    NavigationRoot(
-                        appIntroDone = initialSettings.appIntroDone,
-                        startingRoute = startingRoute,
-                    )
-                    Column(
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Button(onClick = {
-                            startActivity(Intent(this@MainActivity, SalahGuardDashboardActivity::class.java))
-                        }) { Text("SalahGuard — My 5 Prayers") }
-                        Button(onClick = {
-                            val result = SalahGuardTestAlarm.schedule(this@MainActivity)
-                            Toast.makeText(this@MainActivity, result, Toast.LENGTH_LONG).show()
-                        }) { Text("Test Alarm (60s)") }
-                    }
-                }
+                NavigationRoot(
+                    appIntroDone = initialSettings.appIntroDone,
+                    startingRoute = startingRoute,
+                )
             }
         }
 
