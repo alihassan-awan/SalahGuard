@@ -2,6 +2,15 @@ package com.github.meypod.al_azan
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -54,10 +63,21 @@ class MainActivity : AppCompatActivity() {
             val settings by settingsRepository.data.collectAsState(initial = initialSettings)
 
             AlAzanTheme(settings.themeColor, settings.displayScale) {
-                NavigationRoot(
-                    appIntroDone = initialSettings.appIntroDone,
-                    startingRoute = startingRoute,
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NavigationRoot(
+                        appIntroDone = initialSettings.appIntroDone,
+                        startingRoute = startingRoute,
+                    )
+                    Button(
+                        onClick = {
+                            val result = SalahGuardTestAlarm.schedule(this@MainActivity)
+                            Toast.makeText(this@MainActivity, result, Toast.LENGTH_LONG).show()
+                        },
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 22.dp),
+                    ) {
+                        Text("Test Alarm (60s)")
+                    }
+                }
             }
         }
 
