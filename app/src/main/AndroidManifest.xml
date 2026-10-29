@@ -127,6 +127,8 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".SalahGuardTestAlarmReceiver" android:exported="false" />
+
         <!-- Plays the adhan as a foreground service when an alarm fires. -->
         <service
             android:name=".playback.PlaybackService"
