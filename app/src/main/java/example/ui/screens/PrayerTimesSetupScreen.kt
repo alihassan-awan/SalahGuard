@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.data.model.SalahGuardStore
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.*
 import com.example.ui.theme.*
 
@@ -34,10 +36,11 @@ fun PrayerTimesSetupScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var gpsEnabled by remember { mutableStateOf(true) }
-    var selectedCalculationMethod by remember { mutableStateOf("Muslim World League (MWL)") }
-    var selectedAsrMethod by remember { mutableStateOf("Standard (Shafi'i, Maliki, Hanbali)") }
-    var is24HourFormat by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var gpsEnabled by remember { mutableStateOf(SalahGuardStore.gpsEnabled(context)) }
+    var selectedCalculationMethod by remember { mutableStateOf(SalahGuardStore.setting(context, "calculation_method", "Muslim World League (MWL)")) }
+    var selectedAsrMethod by remember { mutableStateOf(SalahGuardStore.setting(context, "asr_method", "Standard (Shafi'i, Maliki, Hanbali)")) }
+    var is24HourFormat by remember { mutableStateOf(SalahGuardStore.is24(context)) }
 
     var calcDropdownExpanded by remember { mutableStateOf(false) }
     var asrDropdownExpanded by remember { mutableStateOf(false) }
@@ -76,7 +79,13 @@ fun PrayerTimesSetupScreen(
             ) {
                 SalahPrimaryButton(
                     text = "Save Settings",
-                    onClick = onSaved,
+                    onClick = {
+                        SalahGuardStore.setGpsEnabled(context, gpsEnabled)
+                        SalahGuardStore.setSetting(context, "calculation_method", selectedCalculationMethod)
+                        SalahGuardStore.setSetting(context, "asr_method", selectedAsrMethod)
+                        SalahGuardStore.set24Format(context, is24HourFormat)
+                        onSaved()
+                    },
                     testTag = "save_settings_button"
                 )
             }
@@ -113,7 +122,7 @@ fun PrayerTimesSetupScreen(
                         )
                         Switch(
                             checked = gpsEnabled,
-                            onCheckedChange = { gpsEnabled = it },
+                            onCheckedChange = { gpsEnabled = it; SalahGuardStore.setGpsEnabled(context, it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SalahTextWhite,
                                 checkedTrackColor = SalahEmerald,
@@ -158,14 +167,14 @@ fun PrayerTimesSetupScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Multan, Pakistan",
+                                    text = SalahGuardStore.city(context),
                                     style = MaterialTheme.typography.titleSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = SalahTextWhite
                                     )
                                 )
                                 Text(
-                                    text = "Detected via GPS",
+                                    text = if (SalahGuardStore.city(context) == "Location not detected") "Tap to detect GPS" else "Saved GPS location",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = SalahTextSecondary,
                                         fontSize = 11.sp
