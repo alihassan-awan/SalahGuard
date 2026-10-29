@@ -1,6 +1,12 @@
 package com.github.meypod.al_azan
 
 import android.app.TimePickerDialog
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.LocationManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -54,6 +60,8 @@ class SalahGuardDashboardActivity : ComponentActivity() {
     private val mint = Color(0xFF38D6A0)
     private var refresh by mutableStateOf(0)
     private var tab by mutableStateOf(0)
+    private var locationStatus by mutableStateOf("Location not detected")
+    private var locationBusy by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,12 +133,13 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                             }, modifier = Modifier.fillMaxWidth()) {
                                 Text("Test alarm in 60 seconds")
                             }
-                            Button(onClick = {
-                                startActivity(Intent(this@SalahGuardDashboardActivity, MainActivity::class.java))
-                            }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Original prayer calculation settings")
+                            Text("Location & calculation", color = Color.White, fontSize = 20.sp)
+                            Text(locationStatus, color = Color.LightGray)
+                            Button(onClick = { detectLocation() }, enabled = !locationBusy,
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text(if (locationBusy) "Detecting location..." else "Detect current city (GPS)")
                             }
-                            Text("GPS city detection and real prayer scheduling: upcoming phases.",
+                            Text("GPS detection does not yet calculate or schedule prayer times. Use Times tab for manual timings.",
                                 color = Color.LightGray)
                         }
                     }
@@ -175,4 +184,70 @@ class SalahGuardDashboardActivity : ComponentActivity() {
             }
         }
     }
+    private fun detectLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION), 4201)
+            return
+        }
+        val manager = getSystemService(LocationManager::class.java)
+        val provider = when {
+            manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            else -> {
+                locationStatus = "Location services are disabled. Enable GPS in Android Settings."
+                return
+            }
+        }
+        locationBusy = true
+        locationStatus = "Retrieving GPS coordinates..."
+        if (Build.VERSION.SDK_INT >= 30) {
+            manager.getCurrentLocation(provider, null, mainExecutor) { point ->
+                locationBusy = false
+                if (point == null) {
+                    locationStatus = "No GPS fix. Check permissions and retry, or use manual times."
+                } else {
+                    prefs.edit().putString("gps_coords", "${point.latitude},${point.longitude}").apply()
+                    val coords = "%.4f, %.4f".format(Locale.US, point.latitude, point.longitude)
+                    locationStatus = "Coordinates: $coords"
+                    Thread {
+                        try {
+                            @Suppress("DEPRECATION")
+                            val address = Geocoder(this, Locale.getDefault())
+                                .getFromLocation(point.latitude, point.longitude, 1)?.firstOrNull()
+                            val city = listOfNotNull(address?.locality ?: address?.subAdminArea,
+                                address?.countryName).joinToString(", ")
+                            runOnUiThread {
+                                if (city.isNotBlank()) {
+                                    locationStatus = "$city ($coords)"
+                                    prefs.edit().putString("gps_city", city).apply()
+                                } else locationStatus = "GPS: $coords (city unavailable)"
+                            }
+                        } catch (_: Exception) {
+                            runOnUiThread { locationStatus = "GPS: $coords (city unavailable)" }
+                        }
+                    }.start()
+                }
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val point = manager.getLastKnownLocation(provider)
+            locationBusy = false
+            locationStatus = if (point == null) "Location not yet available; retry with GPS enabled."
+                else "GPS: %.4f, %.4f".format(Locale.US, point.latitude, point.longitude)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
+        grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 4201) {
+            if (grantResults.any { it == PackageManager.PERMISSION_GRANTED }) detectLocation()
+            else locationStatus = "Location permission denied. Manual prayer times remain available."
+        }
+    }
+
 }
