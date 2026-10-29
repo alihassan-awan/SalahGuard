@@ -61,17 +61,19 @@ object SalahGuardTestAlarm {
             PackageManager.PERMISSION_GRANTED
         ) return
         val launch = PendingIntent.getActivity(
-            context, 90502, Intent(context, MainActivity::class.java),
+            context, 90502, Intent(context, SalahGuardAccountabilityActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("SalahGuard — Test Alarm")
-            .setContentText("60-second test fired. This is not a prayer confirmation.")
+            .setContentTitle("SalahGuard — Prayer Alarm Test")
+            .setContentText("Tap to open accountability screen. No real prayers will be recorded.")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
             .setContentIntent(launch)
+            .setFullScreenIntent(launch, true)
+            .setOngoing(true)
             .build()
         notificationManager.notify(90501, notification)
     }
