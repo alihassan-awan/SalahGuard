@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
+import com.github.meypod.al_azan.R
 import com.example.ui.components.*
 import com.example.ui.theme.*
 
@@ -58,7 +58,7 @@ fun AlarmScreen(
     ) {
         // Atmospheric mosque background
         Image(
-            painter = painterResource(id = R.drawable.splash_bg),
+            painter = painterResource(id = R.drawable.mosque),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
