@@ -36,6 +36,9 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
+      - name: Restore fixed development signing key
+        run: base64 --decode .github/salahguard-debug.keystore.base64 > salahguard-debug.jks
+
       - name: Run unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
