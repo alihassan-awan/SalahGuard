@@ -128,6 +128,9 @@
         </receiver>
 
         <receiver android:name=".SalahGuardTestAlarmReceiver" android:exported="false" />
+        <activity android:name=".SalahGuardAccountabilityActivity" android:exported="false"
+            android:showWhenLocked="true" android:turnScreenOn="true"
+            android:theme="@style/Theme.AlAzan" />
 
         <!-- Plays the adhan as a foreground service when an alarm fires. -->
         <service
