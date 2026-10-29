@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlarmManager
 import android.app.AlertDialog
 import android.app.PendingIntent
+import android.app.NotificationManager
 import android.content.Intent
 import android.graphics.Color
 import android.media.AudioAttributes
@@ -34,8 +35,13 @@ class SalahGuardAccountabilityActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setShowWhenLocked(true)
-        setTurnScreenOn(true)
+        if (Build.VERSION.SDK_INT >= 27) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(0x00080000 or 0x00200000)
+        }
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         startRinging()
         showActions()
@@ -174,6 +180,7 @@ class SalahGuardAccountabilityActivity : Activity() {
     }
 
     private fun stopRinging() {
+        getSystemService(NotificationManager::class.java).cancel(90501)
         runCatching { player?.stop() }
         player?.release()
         player = null
