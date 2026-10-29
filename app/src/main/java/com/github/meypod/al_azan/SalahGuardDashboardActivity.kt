@@ -3,6 +3,8 @@ package com.github.meypod.al_azan
 import android.app.Activity
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.content.Intent
+import android.widget.Toast
 import android.graphics.Color
 import android.view.Gravity
 import android.widget.Button
@@ -78,9 +80,20 @@ class SalahGuardDashboardActivity : Activity() {
             })
         }
         root.addView(Button(this).apply {
-            text = "Back to existing prayer app"
+            text = "Test alarm in 60 seconds"
             isAllCaps = false
-            setOnClickListener { finish() }
+            setOnClickListener {
+                Toast.makeText(this@SalahGuardDashboardActivity,
+                    SalahGuardTestAlarm.schedule(this@SalahGuardDashboardActivity),
+                    Toast.LENGTH_LONG).show()
+            }
+        })
+        root.addView(Button(this).apply {
+            text = "Open original prayer settings"
+            isAllCaps = false
+            setOnClickListener {
+                startActivity(Intent(this@SalahGuardDashboardActivity, MainActivity::class.java))
+            }
         })
         val scroll = ScrollView(this)
         scroll.addView(root)
