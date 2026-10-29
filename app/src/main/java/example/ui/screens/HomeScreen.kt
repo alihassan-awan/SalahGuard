@@ -29,6 +29,11 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerScheduleItem
 import com.example.data.model.PrayerStatus
 import com.example.data.model.PrayerType
+import com.example.data.model.SalahGuardStore
+import androidx.compose.ui.platform.LocalContext
+import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Locale
 import com.example.ui.components.*
 import com.example.ui.theme.*
 
@@ -57,29 +62,36 @@ fun HomeScreen(
         }
     )
 
-    // Countdown timer state
-    var countdownSeconds by remember { mutableIntStateOf(4585) } // 01:16:25
+    val context = LocalContext.current
+    var secondsTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
-        while (countdownSeconds > 0) {
+        while (true) {
             kotlinx.coroutines.delay(1000)
-            countdownSeconds--
+            secondsTick++
         }
     }
-
-    val hours = countdownSeconds / 3600
-    val minutes = (countdownSeconds % 3600) / 60
-    val seconds = countdownSeconds % 60
-    val countdownFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-
-    val prayers = remember {
-        listOf(
-            PrayerScheduleItem(PrayerType.FAJR, time = "5:20 AM", status = PrayerStatus.PRAYED),
-            PrayerScheduleItem(PrayerType.ZUHR, time = "1:30 PM", status = PrayerStatus.PENDING, isNext = true),
-            PrayerScheduleItem(PrayerType.ASR, time = "4:15 PM", status = PrayerStatus.NOT_PRAYED),
-            PrayerScheduleItem(PrayerType.MAGHRIB, time = "5:52 PM", status = PrayerStatus.NOT_PRAYED),
-            PrayerScheduleItem(PrayerType.ISHA, time = "7:10 PM", status = PrayerStatus.NOT_PRAYED)
-        )
+    val timeNow = Calendar.getInstance()
+    val currentSeconds = timeNow.get(Calendar.HOUR_OF_DAY) * 3600 +
+        timeNow.get(Calendar.MINUTE) * 60 + timeNow.get(Calendar.SECOND)
+    val types = listOf(PrayerType.FAJR, PrayerType.ZUHR, PrayerType.ASR, PrayerType.MAGHRIB, PrayerType.ISHA)
+    val values = SalahGuardStore.names.map { SalahGuardStore.get24(context, it) }
+    val seconds = values.map { v ->
+        val pair = v.split(":")
+        pair[0].toInt() * 3600 + pair[1].toInt() * 60
     }
+    val nextIndex = seconds.indices.minByOrNull { (seconds[it] - currentSeconds + 86400) % 86400 } ?: 0
+    val countdownSeconds = (seconds[nextIndex] - currentSeconds + 86400) % 86400
+    val countdownFormatted = "%02d:%02d:%02d".format(Locale.US,
+        countdownSeconds / 3600, (countdownSeconds % 3600) / 60, countdownSeconds % 60)
+    val prayers = types.mapIndexed { i, type ->
+        PrayerScheduleItem(type,
+            time = SalahGuardStore.display(values[i], SalahGuardStore.is24(context)),
+            status = if (SalahGuardStore.verified(context, SalahGuardStore.names[i])) PrayerStatus.PRAYED
+                else PrayerStatus.PENDING,
+            isNext = i == nextIndex)
+    }
+    val nextPrayerName = SalahGuardStore.names[nextIndex]
+    val nextPrayerTime = SalahGuardStore.display(values[nextIndex], SalahGuardStore.is24(context))
 
     Scaffold(
         containerColor = SalahDarkBg,
@@ -113,7 +125,7 @@ fun HomeScreen(
         ) {
             // Gregorian & Islamic Date Header
             Text(
-                text = "Thu, 29 Oct 2026",
+                text = SimpleDateFormat("EEE, dd MMM yyyy", Locale.ENGLISH).format(timeNow.time),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = SalahTextWhite,
@@ -122,7 +134,7 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "6 Jumada al-Awwal 1448",
+                text = "Manual timetable • " + SalahGuardStore.city(context),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = SalahTextSecondary,
                     fontSize = 13.sp
@@ -387,7 +399,7 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "1:30 PM",
+                                    text = nextPrayerTime,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         color = SalahTextSecondary,
                                         fontSize = 14.sp
