@@ -25,6 +25,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.*
+import com.example.data.model.SalahGuardStore
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.location.Geocoder
+import android.os.Build
+import androidx.core.content.ContextCompat
+import java.util.Locale
 import com.example.ui.theme.*
 
 @Composable
@@ -34,6 +45,67 @@ fun LocationDetectionScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    var locationResult by remember { mutableStateOf(SalahGuardStore.city(context)) }
+    var busy by remember { mutableStateOf(false) }
+    fun requestFix() {
+        val manager = context.getSystemService(LocationManager::class.java)
+        val provider = when {
+            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            else -> { locationResult = "Enable location services in Android Settings"; return }
+        }
+        busy = true
+        locationResult = "Getting current location..."
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                manager.getCurrentLocation(provider, null, context.mainExecutor) { location ->
+                    busy = false
+                    if (location == null) locationResult = "Location unavailable. Please retry."
+                    else {
+                        val lat = location.latitude
+                        val lon = location.longitude
+                        Thread {
+                            val name = try {
+                                @Suppress("DEPRECATION")
+                                val address = Geocoder(context, Locale.getDefault())
+                                    .getFromLocation(lat, lon, 1)?.firstOrNull()
+                                listOfNotNull(address?.locality ?: address?.subAdminArea,
+                                    address?.countryName).joinToString(", ").ifBlank { "Coordinates detected" }
+                            } catch (_: Exception) { "Coordinates detected" }
+                            SalahGuardStore.setCity(context, name, lat, lon)
+                            android.os.Handler(android.os.Looper.getMainLooper()).post { locationResult = name }
+                        }.start()
+                    }
+                }
+            } catch (_: SecurityException) { busy = false; locationResult = "Location permission required" }
+        } else {
+            try {
+                @Suppress("DEPRECATION")
+                val location = manager.getLastKnownLocation(provider)
+                busy = false
+                if (location == null) locationResult = "No recent location. Retry with GPS enabled."
+                else {
+                    SalahGuardStore.setCity(context, "Coordinates detected", location.latitude, location.longitude)
+                    locationResult = "Coordinates detected"
+                }
+            } catch (_: SecurityException) { busy = false; locationResult = "Location permission required" }
+        }
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        if (results.values.any { it }) requestFix()
+        else locationResult = "Permission denied. You can continue with manual times."
+    }
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED) requestFix()
+        else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION))
+    }
     val scrollState = rememberScrollState()
 
     // Pulse animation for location radar
@@ -155,7 +227,7 @@ fun LocationDetectionScreen(
 
             // Subtitle
             Text(
-                text = "Getting your current location...",
+                text = if (busy) "Getting your current location..." else locationResult,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = SalahTextSecondary,
                     fontSize = 15.sp
@@ -172,7 +244,7 @@ fun LocationDetectionScreen(
                 LocationCheckItem(title = "Checking GPS")
                 LocationCheckItem(title = "Retrieving coordinates")
                 LocationCheckItem(title = "Finding your city")
-                LocationCheckItem(title = "Calculating prayer times")
+                LocationCheckItem(title = "Manual prayer times (calculation not connected)")
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -211,7 +283,7 @@ fun LocationDetectionScreen(
 
                     Column {
                         Text(
-                            text = "Multan, Pakistan",
+                            text = locationResult,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = SalahTextWhite,
@@ -220,7 +292,7 @@ fun LocationDetectionScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Location detected successfully",
+                            text = if (SalahGuardStore.city(context) == "Location not detected") "Location not yet detected" else "Location stored locally",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = SalahEmeraldLight,
                                 fontWeight = FontWeight.Medium,
