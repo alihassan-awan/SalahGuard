@@ -33,6 +33,9 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,11 +65,14 @@ class SalahGuardDashboardActivity : ComponentActivity() {
     private val gold = Color(0xFFFFC15A)
     private var refresh by mutableStateOf(0)
     private var tab by mutableStateOf(0)
+    private var detail by mutableStateOf("")
+    private var liveLocation by mutableStateOf(false)
     private var locationStatus by mutableStateOf("Location not detected")
     private var locationBusy by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        liveLocation = prefs.getBoolean("live_location", false)
         setContent { SalahGuardScreen() }
     }
 
@@ -98,9 +104,11 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Text("SalahGuard", color = mint, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+                    Text("☪  SalahGuard", color = mint, fontSize = 27.sp, fontWeight = FontWeight.Bold)
                     Text(today + "  •  " + (prefs.getString("gps_city", null) ?: "Manual timetable"), color = Color.LightGray)
-                    when (tab) {
+                    if (detail.isNotEmpty()) {
+                        DetailScreen()
+                    } else when (tab) {
                         0 -> {
                             val now = Calendar.getInstance()
                             val currentMinute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
@@ -109,7 +117,7 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                                 val minute = clock[0].toInt() * 60 + clock[1].toInt()
                                 Triple(i, minute, (minute - currentMinute + 1440) % 1440)
                             }.minByOrNull { it.third }
-                            Card(colors = CardDefaults.cardColors(containerColor = surface),
+                            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF075449)),
                                 shape = RoundedCornerShape(22.dp)) {
                                 Column(Modifier.fillMaxWidth().padding(22.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -140,7 +148,18 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                             }
                         }
                         1 -> {
-                            Header("Prayer timetable", "Edit your timings. Saving a time never marks a prayer completed.")
+                            Header("Prayer Times", "Location, calculation and editable timings")
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Live Location (GPS)", color = Color.White, fontSize = 16.sp)
+                                Switch(checked = liveLocation, onCheckedChange = {
+                                    liveLocation = it
+                                    prefs.edit().putBoolean("live_location", it).apply()
+                                    if (it) detectLocation()
+                                })
+                            }
+                            Text(locationStatus, color = Color.LightGray)
+                            OutlinedButton(onClick = { detail = "Location Detection"; detectLocation() }, modifier = Modifier.fillMaxWidth()) { Text("Locate my city") }
+                            OutlinedButton(onClick = { detail = "Calculation Method" }, modifier = Modifier.fillMaxWidth()) { Text("Calculation method & Asr settings") }
                             Card(colors = CardDefaults.cardColors(containerColor = surface),
                                 shape = RoundedCornerShape(16.dp)) {
                                 Text("MANUAL MODE • Times are saved locally. Real alarms are not yet linked.",
@@ -150,12 +169,16 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                             prayers.forEachIndexed { i, prayer -> PrayerRow(today, prayer, examples[i], true) }
                         }
                         2 -> {
-                            Header("Prayer history", "Daily and weekly reporting will be added after real verification is connected.")
-                            Text("No completed prayers are inferred from alarm dismissal.",
-                                color = Color.White)
+                            Header("Prayer History", "Daily progress and reports")
+                            OutlinedButton(onClick = { detail = "Daily History" }, modifier = Modifier.fillMaxWidth()) { Text("Today’s prayer records") }
+                            OutlinedButton(onClick = { detail = "Weekly & Monthly Reports" }, modifier = Modifier.fillMaxWidth()) { Text("Weekly / Monthly Reports") }
+                            Text("Real verification and report calculations are not yet connected.", color = Color.LightGray)
                         }
                         else -> {
-                            Header("Settings & testing", "Developer tools are kept outside the main dashboard.")
+                            Header("Settings", "Prayer alerts, calculation and developer tools")
+                            OutlinedButton(onClick = { detail = "Alarm Settings" }, modifier = Modifier.fillMaxWidth()) { Text("Notifications • Alarm • Snooze") }
+                            OutlinedButton(onClick = { detail = "Location Detection" }, modifier = Modifier.fillMaxWidth()) { Text("Location & GPS") }
+                            OutlinedButton(onClick = { detail = "Developer Test Alarm" }, modifier = Modifier.fillMaxWidth()) { Text("Developer test alarm screen") }
                             Button(onClick = {
                                 Toast.makeText(this@SalahGuardDashboardActivity,
                                     SalahGuardTestAlarm.schedule(this@SalahGuardDashboardActivity),
@@ -172,6 +195,45 @@ class SalahGuardDashboardActivity : ComponentActivity() {
                             Text("GPS detection does not yet calculate or schedule prayer times. Use Times tab for manual timings.",
                                 color = Color.LightGray)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun DetailScreen() {
+        Header(detail, "SalahGuard")
+        OutlinedButton(onClick = { detail = "" }, modifier = Modifier.fillMaxWidth()) { Text("← Back") }
+        Card(colors = CardDefaults.cardColors(containerColor = surface), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                when (detail) {
+                    "Location Detection" -> {
+                        Text(locationStatus, color = Color.White)
+                        Button(onClick = { detectLocation() }, modifier = Modifier.fillMaxWidth()) { Text("Detect city using GPS") }
+                        Text("Detected coordinates are not yet linked to calculation.", color = Color.LightGray)
+                    }
+                    "Developer Test Alarm" -> {
+                        Text("Test alerts are separate from real Salah records.", color = Color.White)
+                        Button(onClick = {
+                            Toast.makeText(this@SalahGuardDashboardActivity,
+                                SalahGuardTestAlarm.schedule(this@SalahGuardDashboardActivity), Toast.LENGTH_LONG).show()
+                        }) { Text("Trigger in 60 seconds") }
+                    }
+                    "Calculation Method" -> {
+                        Text("Manual timetable is currently active.", color = gold)
+                        Text("Calculation method and Asr selection will be connected to the inherited prayer engine in the next functional phase.", color = Color.White)
+                    }
+                    "Alarm Settings" -> {
+                        Text("Prayer alarms and snooze settings will be connected to manual prayer times next.", color = Color.White)
+                        Text("Existing 60-second test alarm is available under Developer Test Alarm.", color = Color.LightGray)
+                    }
+                    "Daily History" -> {
+                        Text("No prayer is marked completed until verified.", color = Color.White)
+                        prayers.forEach { Text("$it  •  Not yet verified", color = Color.LightGray) }
+                    }
+                    else -> {
+                        Text("Weekly and monthly reports are awaiting real prayer-status data.", color = Color.White)
                     }
                 }
             }
