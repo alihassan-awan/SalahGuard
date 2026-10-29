@@ -13,7 +13,7 @@ android {
     compileSdk { version = release(37) }
 
     defaultConfig {
-        applicationId = "com.github.meypod.al_azan"
+        applicationId = "com.alihassanawan.salahguard"
         minSdk = 26
         compileSdk = 37
         targetSdk = 36
@@ -23,9 +23,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("salahguardDevelopment") {
+            storeFile = rootProject.file("salahguard-debug.jks")
+            storePassword = "android"
+            keyAlias = "salahguarddebug"
+            keyPassword = "android"
+        }
+    }
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("salahguardDevelopment")
         }
         release {
             isMinifyEnabled = true
