@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.data.model.SalahGuardStore
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.*
 import com.example.ui.theme.*
 
@@ -31,16 +33,18 @@ fun EditPrayerTimesScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var fajrTime by remember { mutableStateOf("5:20 AM") }
-    var zuhrTime by remember { mutableStateOf("1:30 PM") }
-    var asrTime by remember { mutableStateOf("4:15 PM") }
-    var maghribTime by remember { mutableStateOf("5:52 PM") }
-    var ishaTime by remember { mutableStateOf("7:10 PM") }
+    val context = LocalContext.current
+    var fajrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Fajr"))) }
+    var zuhrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Zuhr"))) }
+    var asrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Asr"))) }
+    var maghribTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Maghrib"))) }
+    var ishaTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Isha"))) }
 
     // Dialog state for editing a time
     var activeEditingPrayer by remember { mutableStateOf<String?>(null) }
     var activeEditingTime by remember { mutableStateOf("") }
 
+    var timeError by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -62,7 +66,15 @@ fun EditPrayerTimesScreen(
             ) {
                 SalahPrimaryButton(
                     text = "Save Times",
-                    onClick = onSaveTimes,
+                    onClick = {
+                        val values = listOf(fajrTime, zuhrTime, asrTime, maghribTime, ishaTime)
+                        val parsed = values.map { SalahGuardStore.parse(it) }
+                        if (parsed.any { it == null }) timeError = true
+                        else {
+                            SalahGuardStore.names.forEachIndexed { i, prayer -> SalahGuardStore.set24(context, prayer, parsed[i]!!) }
+                            onSaveTimes()
+                        }
+                    },
                     testTag = "save_times_button"
                 )
             }
@@ -76,6 +88,7 @@ fun EditPrayerTimesScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
+            if (timeError) Text("Invalid time. Use 5:20 AM or 17:20.", color = SalahGold)
             // 5 Editable Rows (matches mockup)
             EditablePrayerRow(
                 prayerType = PrayerType.FAJR,
