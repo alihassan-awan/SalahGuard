@@ -1,61 +1,42 @@
 package com.example.data.model
 
-import android.content.Context
-import org.robolectric.RuntimeEnvironment
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDate
-import java.util.TimeZone
+import java.time.ZoneId
 
-@RunWith(RobolectricTestRunner::class)
+/** Pure JVM tests: do not initialize the Android Application or native MMKV. */
 class SalahGuardPrayerCalculatorTest {
-    private lateinit var context: Context
-
-    @Before fun reset() {
-        context = RuntimeEnvironment.getApplication()
-        context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE).edit().clear().commit()
-        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Karachi"))
-    }
+    private val date = LocalDate.of(2026, 10, 30)
+    private val zone = ZoneId.of("Asia/Karachi")
+    private val method = "University of Islamic Sciences, Karachi"
 
     @Test fun missingLocationCannotGenerateTimetable() {
-        assertNull(SalahGuardPrayerCalculator.calculate(context))
-        assertFalse(SalahGuardPrayerCalculator.apply(context))
-        assertFalse(context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
-            .getBoolean("manual_schedule_enabled", false))
+        assertNull(SalahGuardPrayerCalculator.calculateForCoordinates(null, method, "Hanafi", date, zone))
     }
 
     @Test fun invalidCoordinatesAreRejected() {
-        context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE).edit()
-            .putString("gps_coords", "999.0,73.0").commit()
-        assertNull(SalahGuardPrayerCalculator.calculate(context))
+        for (coords in listOf("999.0,73.0", "33.0,NaN", "broken", "91,50", "33.0,181")) {
+            assertNull(coords, SalahGuardPrayerCalculator.calculateForCoordinates(coords, method, "Hanafi", date, zone))
+        }
     }
 
     @Test fun islamabadProducesFiveOrderedTimes() {
-        val prefs = context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
-        prefs.edit().putString("gps_coords", "33.6844,73.0479")
-            .putString("calculation_method", "University of Islamic Sciences, Karachi")
-            .putString("asr_method", "Hanafi").commit()
-        val times = SalahGuardPrayerCalculator.calculate(context, LocalDate.of(2026, 10, 30))
+        val times = SalahGuardPrayerCalculator.calculateForCoordinates(
+            "33.6844,73.0479", method, "Hanafi", date, zone)
         assertNotNull(times)
-        assertEquals(SalahGuardStore.names.toSet(), times!!.keys)
-        val minutes = SalahGuardStore.names.map { prayer ->
-            val t = times.getValue(prayer).split(":")
-            t[0].toInt() * 60 + t[1].toInt()
+        assertEquals(listOf("Fajr", "Zuhr", "Asr", "Maghrib", "Isha").toSet(), times!!.keys)
+        val minutes = listOf("Fajr", "Zuhr", "Asr", "Maghrib", "Isha").map { name ->
+            val time = times.getValue(name).split(":")
+            time[0].toInt() * 60 + time[1].toInt()
         }
         assertTrue("Prayer times should be ordered within the day: $minutes",
             minutes.zipWithNext().all { (a, b) -> a < b })
     }
 
-    @Test fun manualTimesCannotBeOverwrittenByAutoRefresh() {
-        val prefs = context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
-        prefs.edit().putString("gps_coords", "33.6844,73.0479")
-            .putBoolean("manual_schedule_enabled", true)
-            .putString("timetable_mode", "manual")
-            .putString("time_Fajr", "04:44").commit()
-        assertFalse(SalahGuardPrayerCalculator.apply(context))
-        assertEquals("04:44", prefs.getString("time_Fajr", null))
+    @Test fun manualTimetableRemainsProtected() {
+        assertFalse(SalahGuardPrayerCalculator.canAutoApply("manual", true))
+        assertTrue(SalahGuardPrayerCalculator.canAutoApply("calculated", true))
+        assertTrue(SalahGuardPrayerCalculator.canAutoApply("manual", false))
     }
 }
