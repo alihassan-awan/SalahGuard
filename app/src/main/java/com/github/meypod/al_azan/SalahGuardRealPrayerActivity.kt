@@ -29,9 +29,10 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                         prayerName = prayer,
                         onNavigateBack = { page = "alarm" },
                         onQuickSwitchClick = {},
-                        onConfirmPrayed = {
+                        onConfirmPrayed = { detail ->
                             getSharedPreferences("salahguard_v03", MODE_PRIVATE).edit()
                                 .putString("status_${date}_${prayer}", "Completed")
+                                .putString("prayed_detail_${date}_${prayer}", detail)
                                 .putLong("verified_at_${date}_${prayer}", System.currentTimeMillis())
                                 .apply()
                             getSystemService(NotificationManager::class.java).cancel(97000 + index)
