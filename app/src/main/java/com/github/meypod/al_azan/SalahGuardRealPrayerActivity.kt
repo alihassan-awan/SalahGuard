@@ -1,6 +1,6 @@
 package com.github.meypod.al_azan
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
 import android.app.NotificationManager
 import android.os.Build
 import android.os.Bundle
@@ -13,7 +13,7 @@ import com.example.ui.screens.NotPrayedReasonScreen
 import com.example.ui.theme.SalahGuardTheme
 
 /** Real prayer flow using the AI Studio UI; never used for developer test alarms. */
-class SalahGuardRealPrayerActivity : Activity() {
+class SalahGuardRealPrayerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
