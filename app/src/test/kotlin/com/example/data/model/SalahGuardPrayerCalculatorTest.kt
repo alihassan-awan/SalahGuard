@@ -1,7 +1,7 @@
 package com.example.data.model
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import org.robolectric.RuntimeEnvironment
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -15,7 +15,7 @@ class SalahGuardPrayerCalculatorTest {
     private lateinit var context: Context
 
     @Before fun reset() {
-        context = ApplicationProvider.getApplicationContext()
+        context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE).edit().clear().commit()
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Karachi"))
     }
