@@ -86,7 +86,7 @@ fun PrayerHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { dayOffset-- },
+                        onClick = { if (dayOffset > -365) { dayOffset--; selectedDetail = null } },
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
@@ -128,7 +128,7 @@ fun PrayerHistoryScreen(
                             )
                         }
                         IconButton(
-                            onClick = { if (dayOffset < 0) dayOffset++ },
+                            onClick = { if (dayOffset < 0) { dayOffset++; selectedDetail = null } },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
@@ -260,7 +260,7 @@ fun PrayerHistoryScreen(
                                 SimpleDateFormat("h:mm a", Locale.US).format(Date(timestamp)))
                             if (reason != null) Text("Explanation: $reason")
                             Text("Snoozed: $snoozes time(s)")
-                            if (status == "Unconfirmed") Text("No completion has been recorded.")
+                            if (status == "Unconfirmed") Text("No completion has been recorded. This does not prove a missed prayer.")
                         }
                     },
                     confirmButton = {
