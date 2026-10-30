@@ -11,14 +11,14 @@ object DailyHadith {
     private val numbers = listOf(1, 13, 52, 54, 73, 6464, 6018, 10, 15, 16, 33, 40)
     fun current(context: Context): Pair<String,String> {
         val p = context.getSharedPreferences("salahguard_hadith", Context.MODE_PRIVATE)
-        val fallback = "The most beloved deeds to Allah are those done regularly, even if small." to "Sahih al-Bukhari 6464"
-        return (p.getString("text", null) ?: fallback.first) to
-            (p.getString("source", null) ?: fallback.second)
+        val fallback = "اللہ کو سب سے زیادہ پسندیدہ عمل وہ ہے جو پابندی سے کیا جائے، چاہے تھوڑا ہی ہو۔" to "Sahih al-Bukhari 6464"
+        return (p.getString("text_ur", null) ?: fallback.first) to
+            (p.getString("source_ur", null) ?: fallback.second)
     }
     fun refresh(context: Context, onResult: (Pair<String,String>) -> Unit) {
         val today = LocalDate.now().toString()
         val p = context.getSharedPreferences("salahguard_hadith", Context.MODE_PRIVATE)
-        if (p.getString("date", "") == today && !p.getString("text", "").isNullOrBlank()) {
+        if (p.getString("date_ur", "") == today && !p.getString("text_ur", "").isNullOrBlank()) {
             onResult(current(context)); return
         }
         Thread {
@@ -28,7 +28,7 @@ object DailyHadith {
             var result: Pair<String,String>? = null
             for (extension in listOf("min.json", "json")) {
                 if (result != null) break
-                val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/$number.$extension"
+                val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/urd-bukhari/$number.$extension"
                 result = try {
                 val connection = URL(url).openConnection() as HttpURLConnection
                 connection.connectTimeout = 6500
@@ -41,10 +41,10 @@ object DailyHadith {
                         val hadith = json.optJSONArray("hadiths")?.optJSONObject(0)
                             ?: json.optJSONObject("hadith") ?: json
                         val value = hadith?.optString("text", "")?.trim().orEmpty()
-                        if (value.length in 30..1400) {
-                            val citation = "Sahih al-Bukhari $number • community translation"
-                            p.edit().putString("text", value).putString("source", citation)
-                                .putString("date", today).apply()
+                        if (value.length in 30..2200 && value.any { it in '\u0600'..'\u06FF' }) {
+                            val citation = "صحیح بخاری، حدیث $number • اردو ترجمہ"
+                            p.edit().putString("text_ur", value).putString("source_ur", citation)
+                                .putString("date_ur", today).apply()
                             value to citation
                         } else null
                     }
