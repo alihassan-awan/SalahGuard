@@ -20,7 +20,7 @@ import java.util.Calendar
 /** Schedules the five user-entered daily times. GPS-based calculation is NOT active yet. */
 object SalahGuardPrayerScheduler {
     const val ACTION = "com.alihassanawan.salahguard.PRAYER_DUE"
-    private const val CHANNEL = "salahguard_prayer_v1"
+    private const val CHANNEL_PREFIX = "salahguard_prayer_v2_"
     fun reschedule(context: Context) {
         if (!context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
                 .getBoolean("manual_schedule_enabled", false)) return
@@ -55,16 +55,23 @@ object SalahGuardPrayerScheduler {
             .putExtra("prayer", name).putExtra("snoozed", true)
         val pending = PendingIntent.getBroadcast(context, 95000 + index, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        schedule(alarm, System.currentTimeMillis() + 10 * 60_000L, pending)
+        val minutes = SalahGuardStore.setting(context, "alarm_snooze", "10 minutes").substringBefore(" ").toLongOrNull() ?: 10L
+        schedule(alarm, System.currentTimeMillis() + minutes * 60_000L, pending)
     }
     internal fun notifyPrayer(context: Context, name: String) {
         val notifications = context.getSystemService(NotificationManager::class.java)
+        val silent = SalahGuardStore.setting(context, "alarm_sound", "System alarm") == "Silent"
+        val vibrate = SalahGuardStore.setting(context, "alarm_vibrate", "true") == "true"
+        val fullScreen = SalahGuardStore.setting(context, "alarm_fullscreen", "true") == "true"
+        val channel = CHANNEL_PREFIX + (if (silent) "silent" else "sound") +
+            (if (vibrate) "_vibrate" else "_no_vibrate")
         if (Build.VERSION.SDK_INT >= 26) {
-            val sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            notifications.createNotificationChannel(NotificationChannel(CHANNEL, "Daily prayer alarms",
+            val sound = if (silent) null else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            notifications.createNotificationChannel(NotificationChannel(channel, "Daily prayer alarms",
                 NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(sound, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
-                enableVibration(true)
+                enableVibration(vibrate)
+                if (vibrate) vibrationPattern = longArrayOf(0L, 350L, 250L, 350L)
             })
         }
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -75,13 +82,13 @@ object SalahGuardPrayerScheduler {
                 .putExtra("prayer", name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         notifications.notify(97000 + SalahGuardStore.names.indexOf(name),
-            NotificationCompat.Builder(context, CHANNEL)
+            NotificationCompat.Builder(context, channel)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("$name prayer time")
                 .setContentText("It is time to pray. Tap to open SalahGuard.")
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setFullScreenIntent(launch, true)
+                .setFullScreenIntent(launch, fullScreen)
                 .setContentIntent(launch).setAutoCancel(true).build())
     }
 }
