@@ -470,6 +470,15 @@ fun SettingsScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(22.dp))
+            Text(
+                text = "Built by Ali Hassan Awan",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    color = SalahTextSecondary, fontSize = 12.sp
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
