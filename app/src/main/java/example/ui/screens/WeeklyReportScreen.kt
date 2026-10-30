@@ -154,7 +154,7 @@ fun WeeklyReportScreen(
                     ) {
                         ReportBreakdownRow(label = "Prayed", count = report.prayedCount, color = SalahEmerald)
                         ReportBreakdownRow(label = "Snoozed", count = report.snoozedCount, color = SalahOrange)
-                        ReportBreakdownRow(label = "Missed", count = report.missedCount, color = SalahRed)
+                        ReportBreakdownRow(label = "Not prayed", count = report.missedCount, color = SalahRed)
                         ReportBreakdownRow(label = "Pending", count = report.pendingCount, color = SalahTextSecondary)
                     }
                 }
@@ -164,7 +164,7 @@ fun WeeklyReportScreen(
 
             // Most Missed Prayer Card (matches mockup)
             Text(
-                text = "Most Missed Prayer",
+                text = "Most Often Not Prayed",
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold,
                     color = SalahTextSecondary,
@@ -254,7 +254,7 @@ private fun ReportBreakdownRow(
             text = count.toString(),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
-                color = if (label == "Missed") SalahRed else if (label == "Snoozed") SalahOrange else SalahTextWhite,
+                color = if (label == "Not prayed") SalahRed else if (label == "Snoozed") SalahOrange else SalahTextWhite,
                 fontSize = 15.sp
             )
         )
