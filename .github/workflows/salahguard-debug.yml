@@ -39,8 +39,20 @@ jobs:
       - name: Restore fixed development signing key
         run: base64 --decode .github/salahguard-debug.keystore.base64 > salahguard-debug.jks
 
-      - name: Run unit tests
-        run: ./gradlew --no-daemon :app:testDebugUnitTest
+      - name: Run unit tests (retry transient Robolectric dependency fetch)
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if ./gradlew --no-daemon :app:testDebugUnitTest; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo 'Unit tests still failing after three attempts'
+              exit 1
+            fi
+            echo "Retrying unit tests after failure (attempt ${attempt}/3)"
+            sleep 12
+          done
 
       - name: Build debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
