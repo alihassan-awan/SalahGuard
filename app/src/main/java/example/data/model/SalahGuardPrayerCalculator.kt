@@ -70,6 +70,28 @@ object SalahGuardPrayerCalculator {
         )
     }
 
+    /**
+     * Returns the next prayer occurrence as epoch milliseconds. Automatic mode uses
+     * tomorrow's astronomical times after today's Isha; manual mode repeats fixed times.
+     */
+    fun nextPrayerOccurrence(
+        now: java.time.ZonedDateTime,
+        todayTimes: Map<String, String>,
+        tomorrowTimes: Map<String, String>
+    ): Pair<String, Long>? {
+        fun at(day: java.time.LocalDate, name: String, time: String): Pair<String, Long>? {
+            val parsed = try { java.time.LocalTime.parse(time) } catch (_: Exception) { return null }
+            return name to day.atTime(parsed).atZone(now.zone).toInstant().toEpochMilli()
+        }
+        val today = SalahGuardStore.names.mapNotNull { name ->
+            todayTimes[name]?.let { at(now.toLocalDate(), name, it) }
+        }.filter { it.second > now.toInstant().toEpochMilli() }
+        if (today.isNotEmpty()) return today.minByOrNull { it.second }
+        return SalahGuardStore.names.mapNotNull { name ->
+            tomorrowTimes[name]?.let { at(now.toLocalDate().plusDays(1), name, it) }
+        }.minByOrNull { it.second }
+    }
+
     fun canAutoApply(mode: String?, scheduleEnabled: Boolean): Boolean =
         mode != "manual" || !scheduleEnabled
 
