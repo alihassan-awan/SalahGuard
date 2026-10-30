@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import android.app.NotificationManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.example.data.model.SalahGuardStore
@@ -34,7 +35,9 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                                 .putString("status_${date}_${prayer}", "Completed")
                                 .putString("prayed_detail_${date}_${prayer}", detail)
                                 .putLong("verified_at_${date}_${prayer}", System.currentTimeMillis())
-                                .apply()
+                                .remove("reason_${date}_${prayer}")
+                                .commit()
+                            Toast.makeText(this, "نماز کی تصدیق محفوظ ہو گئی", Toast.LENGTH_LONG).show()
                             getSystemService(NotificationManager::class.java).cancel(97000 + index)
                             finish()
                         }
@@ -46,7 +49,10 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                             getSharedPreferences("salahguard_v03", MODE_PRIVATE).edit()
                                 .putString("status_${date}_${prayer}", "NotPrayed")
                                 .putString("reason_${date}_${prayer}", "$reason: $explanation")
-                                .apply()
+                                .remove("prayed_detail_${date}_${prayer}")
+                                .remove("verified_at_${date}_${prayer}")
+                                .commit()
+                            Toast.makeText(this, "آپ کی وجہ محفوظ ہو گئی", Toast.LENGTH_LONG).show()
                             getSystemService(NotificationManager::class.java).cancel(97000 + index)
                             finish()
                         }
