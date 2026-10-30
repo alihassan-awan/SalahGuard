@@ -1,11 +1,11 @@
 package com.example.data.model
 
 import android.content.Context
-import com.batoulapps.adhan.CalculationMethod
-import com.batoulapps.adhan.Coordinates
-import com.batoulapps.adhan.DateComponents
-import com.batoulapps.adhan.Madhab
-import com.batoulapps.adhan.PrayerTimes
+import io.github.meypod.adhan_kotlin.CalculationMethod
+import io.github.meypod.adhan_kotlin.Coordinates
+import io.github.meypod.adhan_kotlin.data.DateComponents
+import io.github.meypod.adhan_kotlin.Madhab
+import io.github.meypod.adhan_kotlin.PrayerTimes
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -32,7 +32,7 @@ object SalahGuardPrayerCalculator {
                 DateComponents(date.year, date.monthValue, date.dayOfMonth),
                 method.parameters.copy(madhab = madhab))
             val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            fun time(instant: kotlinx.datetime.Instant): String =
+            fun time(instant: kotlin.time.Instant): String =
                 Instant.ofEpochMilli(instant.toEpochMilliseconds())
                     .atZone(ZoneId.systemDefault()).format(formatter)
             mapOf(
