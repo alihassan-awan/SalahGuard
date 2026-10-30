@@ -13,6 +13,15 @@ import java.time.format.DateTimeFormatter
 
 /** Offline calculation. Never substitutes guessed times if GPS coordinates are absent. */
 object SalahGuardPrayerCalculator {
+    /**
+     * Only a first-run suggestion, never an override of an explicitly saved school.
+     * Local mosque/school choice remains authoritative for the user.
+     */
+    fun suggestedAsrMethod(city: String): String =
+        if (city.contains("Pakistan", ignoreCase = true))
+            "Hanafi"
+        else "Standard (Shafi'i, Maliki, Hanbali)"
+
     /** Pure calculation entry point, independent of Android and testable on JVM. */
     fun calculateForCoordinates(
         coordinates: String?,
