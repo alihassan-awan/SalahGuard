@@ -15,6 +15,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.data.model.SalahGuardStore
+import com.example.data.model.SalahGuardPrayerCalculator
 import java.util.Calendar
 
 /** Schedules the five user-entered daily times. GPS-based calculation is NOT active yet. */
@@ -22,9 +23,17 @@ object SalahGuardPrayerScheduler {
     const val ACTION = "com.alihassanawan.salahguard.PRAYER_DUE"
     private const val CHANNEL_PREFIX = "salahguard_prayer_v2_"
     fun reschedule(context: Context) {
+        refreshCalculatedDay(context)
         if (!context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
                 .getBoolean("manual_schedule_enabled", false)) return
         SalahGuardStore.names.forEach { name -> schedulePrayer(context, name) }
+    }
+    private fun refreshCalculatedDay(context: Context) {
+        val prefs = context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
+        if (prefs.getString("timetable_mode", "manual") == "calculated" &&
+            prefs.getString("calculated_date", "") != SalahGuardStore.today()) {
+            SalahGuardPrayerCalculator.apply(context)
+        }
     }
     fun schedulePrayer(context: Context, name: String) {
         if (name !in SalahGuardStore.names) return
@@ -108,7 +117,7 @@ class SalahGuardPrayerReceiver : BroadcastReceiver() {
         if (prayer !in SalahGuardStore.names) return
         // A snoozed occurrence must not reset the five daily schedules.
         if (!intent.getBooleanExtra("snoozed", false))
-            SalahGuardPrayerScheduler.schedulePrayer(context, prayer)
+            SalahGuardPrayerScheduler.reschedule(context)
         SalahGuardPrayerScheduler.notifyPrayer(context, prayer)
     }
 }
