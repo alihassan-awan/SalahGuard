@@ -124,7 +124,7 @@ fun AppNavigation(
             composable(Screen.NotPrayedReason.route) {
                 NotPrayedReasonScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onSubmitMissedReason = { navController.navigate(Screen.PrayerHistory.route) },
+                    onSubmitMissedReason = { _, _ -> navController.navigate(Screen.PrayerHistory.route) },
                     onQuickSwitchClick = openSwitcher
                 )
             }
