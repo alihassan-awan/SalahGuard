@@ -57,6 +57,13 @@ class SalahGuardPrayerCalculatorTest {
             today, laterDate)
     }
 
+    @Test fun pakistanFirstRunSuggestsHanafiWithoutChangingOtherCountries() {
+        assertEquals("Hanafi", SalahGuardPrayerCalculator.suggestedAsrMethod("Multan, Pakistan"))
+        assertEquals("Hanafi", SalahGuardPrayerCalculator.suggestedAsrMethod("Islamabad, Pakistan"))
+        assertEquals("Standard (Shafi'i, Maliki, Hanbali)",
+            SalahGuardPrayerCalculator.suggestedAsrMethod("London, United Kingdom"))
+    }
+
     @Test fun manualTimetableRemainsProtected() {
         assertFalse(SalahGuardPrayerCalculator.canAutoApply("manual", true))
         assertTrue(SalahGuardPrayerCalculator.canAutoApply("calculated", true))
