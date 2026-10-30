@@ -48,9 +48,13 @@ object SalahGuardPrayerScheduler {
         }
     }
     private fun schedule(alarm: AlarmManager, time: Long, pending: PendingIntent) {
-        if (Build.VERSION.SDK_INT >= 31 && !alarm.canScheduleExactAlarms())
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !alarm.canScheduleExactAlarms())
+                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pending)
+            else alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pending)
+        } catch (_: SecurityException) {
             alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pending)
-        else alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pending)
+        }
     }
     fun snooze(context: Context, name: String) {
         val alarm = context.getSystemService(AlarmManager::class.java)
