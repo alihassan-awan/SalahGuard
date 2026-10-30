@@ -32,7 +32,7 @@ fun PrayedVerificationScreen(
     modifier: Modifier = Modifier
 ) {
     var verificationText by remember { mutableStateOf("") }
-    val isVerified = verificationText.trim().equals("I PRAYED", ignoreCase = true) || verificationText.isNotBlank()
+    val isVerified = verificationText.trim() == "I PRAYED"
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -77,7 +77,8 @@ fun PrayedVerificationScreen(
 
                 // Confirm Button
                 Button(
-                    onClick = onConfirmPrayed,
+                    onClick = { if (isVerified) onConfirmPrayed() },
+                    enabled = isVerified,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SalahEmerald,
