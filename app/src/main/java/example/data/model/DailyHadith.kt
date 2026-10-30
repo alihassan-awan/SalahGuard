@@ -12,8 +12,12 @@ object DailyHadith {
     fun current(context: Context): Pair<String,String> {
         val p = context.getSharedPreferences("salahguard_hadith", Context.MODE_PRIVATE)
         val fallback = "اللہ کو سب سے زیادہ پسندیدہ عمل وہ ہے جو پابندی سے کیا جائے، چاہے تھوڑا ہی ہو۔" to "Sahih al-Bukhari 6464"
-        return (p.getString("text_ur", null) ?: fallback.first) to
-            (p.getString("source_ur", null) ?: fallback.second)
+        val savedText = p.getString("text_ur", null)
+        val savedSource = p.getString("source_ur", null)
+        val savedDate = p.getString("date_ur", null)
+        val citation = (savedSource ?: fallback.second) +
+            if (savedText != null && savedDate != LocalDate.now().toString()) " • سابقہ محفوظ شدہ حدیث" else ""
+        return (savedText ?: fallback.first) to citation
     }
     fun refresh(context: Context, onResult: (Pair<String,String>) -> Unit) {
         val today = LocalDate.now().toString()
