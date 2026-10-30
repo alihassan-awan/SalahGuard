@@ -64,6 +64,27 @@ class SalahGuardPrayerCalculatorTest {
             SalahGuardPrayerCalculator.suggestedAsrMethod("London, United Kingdom"))
     }
 
+    @Test fun nextPrayerAfterIshaUsesTomorrowsFajr() {
+        val zone = ZoneId.of("Asia/Karachi")
+        val now = java.time.ZonedDateTime.of(2026, 10, 30, 21, 0, 0, 0, zone)
+        val today = mapOf("Fajr" to "05:05", "Zuhr" to "11:59",
+            "Asr" to "15:51", "Maghrib" to "17:28", "Isha" to "18:49")
+        val tomorrow = today + ("Fajr" to "05:06")
+        val next = SalahGuardPrayerCalculator.nextPrayerOccurrence(now, today, tomorrow)!!
+        assertEquals("Fajr", next.first)
+        assertEquals(java.time.ZonedDateTime.of(2026, 10, 31, 5, 6, 0, 0, zone)
+            .toInstant().toEpochMilli(), next.second)
+    }
+
+    @Test fun nextPrayerDuringDayUsesToday() {
+        val zone = ZoneId.of("Asia/Karachi")
+        val now = java.time.ZonedDateTime.of(2026, 10, 30, 12, 0, 0, 0, zone)
+        val times = mapOf("Fajr" to "05:05", "Zuhr" to "11:59",
+            "Asr" to "15:51", "Maghrib" to "17:28", "Isha" to "18:49")
+        val next = SalahGuardPrayerCalculator.nextPrayerOccurrence(now, times, times)!!
+        assertEquals("Asr", next.first)
+    }
+
     @Test fun manualTimetableRemainsProtected() {
         assertFalse(SalahGuardPrayerCalculator.canAutoApply("manual", true))
         assertTrue(SalahGuardPrayerCalculator.canAutoApply("calculated", true))
