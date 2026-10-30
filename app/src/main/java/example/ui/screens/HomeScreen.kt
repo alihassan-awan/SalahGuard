@@ -30,6 +30,7 @@ import com.example.data.model.PrayerScheduleItem
 import com.example.data.model.PrayerStatus
 import com.example.data.model.PrayerType
 import com.example.data.model.SalahGuardStore
+import com.example.data.model.DailyHadith
 import androidx.compose.ui.platform.LocalContext
 import java.util.Calendar
 import java.text.SimpleDateFormat
@@ -63,6 +64,10 @@ fun HomeScreen(
     )
 
     val context = LocalContext.current
+    var dailyHadith by remember { mutableStateOf(DailyHadith.current(context)) }
+    LaunchedEffect(java.time.LocalDate.now().toString()) {
+        DailyHadith.refresh(context) { dailyHadith = it }
+    }
     var secondsTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -265,7 +270,7 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
-                                    text = "“The most beloved deed to Allah is that which is done regularly, even if it is small.”",
+                                    text = "“" + dailyHadith.first + "”",
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         color = SalahTextWhite,
                                         fontStyle = FontStyle.Italic,
@@ -277,7 +282,7 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(6.dp))
 
                                 Text(
-                                    text = "— Sahih al-Bukhari 6464",
+                                    text = "— " + dailyHadith.second,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = SalahEmeraldLight,
                                         fontWeight = FontWeight.Medium,
