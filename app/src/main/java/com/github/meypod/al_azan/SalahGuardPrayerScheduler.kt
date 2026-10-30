@@ -18,7 +18,7 @@ import com.example.data.model.SalahGuardStore
 import com.example.data.model.SalahGuardPrayerCalculator
 import java.util.Calendar
 
-/** Schedules the five user-entered daily times. GPS-based calculation is NOT active yet. */
+/** Schedules manually entered or GPS-calculated prayer times; each next-day trigger uses that date. */
 object SalahGuardPrayerScheduler {
     const val ACTION = "com.alihassanawan.salahguard.PRAYER_DUE"
     private const val CHANNEL_PREFIX = "salahguard_prayer_v2_"
@@ -45,13 +45,27 @@ object SalahGuardPrayerScheduler {
             val pending = PendingIntent.getBroadcast(context, 94000 + index, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             alarm.cancel(pending)
-            val values = SalahGuardStore.get24(context, name).split(":")
+            val now = System.currentTimeMillis()
+            val todayValues = SalahGuardStore.get24(context, name).split(":")
             val target = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, values[0].toInt())
-                set(Calendar.MINUTE, values[1].toInt())
+                set(Calendar.HOUR_OF_DAY, todayValues[0].toInt())
+                set(Calendar.MINUTE, todayValues[1].toInt())
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
-                if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
+            }
+            if (target.timeInMillis <= now) {
+                target.add(Calendar.DAY_OF_YEAR, 1)
+                // Calculated schedules are date-dependent; tomorrow must not reuse today's hour.
+                val prefs = context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
+                if (prefs.getString("timetable_mode", "manual") == "calculated") {
+                    val tomorrow = java.time.LocalDate.now().plusDays(1)
+                    val tomorrowValues = SalahGuardPrayerCalculator.calculate(context, tomorrow)
+                        ?.get(name)?.split(":")
+                    if (tomorrowValues != null && tomorrowValues.size == 2) {
+                        target.set(Calendar.HOUR_OF_DAY, tomorrowValues[0].toInt())
+                        target.set(Calendar.MINUTE, tomorrowValues[1].toInt())
+                    }
+                }
             }
             schedule(alarm, target.timeInMillis, pending)
         }
