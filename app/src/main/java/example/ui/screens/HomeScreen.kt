@@ -79,7 +79,8 @@ fun HomeScreen(
             secondsTick++
         }
     }
-    val timeNow = Calendar.getInstance()
+    // Reading secondsTick in composition guarantees the visible countdown recomposes each second.
+    val timeNow = remember(secondsTick) { Calendar.getInstance() }
     val currentSeconds = timeNow.get(Calendar.HOUR_OF_DAY) * 3600 +
         timeNow.get(Calendar.MINUTE) * 60 + timeNow.get(Calendar.SECOND)
     val types = listOf(PrayerType.FAJR, PrayerType.ZUHR, PrayerType.ASR, PrayerType.MAGHRIB, PrayerType.ISHA)
