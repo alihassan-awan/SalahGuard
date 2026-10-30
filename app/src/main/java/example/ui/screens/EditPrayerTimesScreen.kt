@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
 import com.example.data.model.SalahGuardStore
+import com.github.meypod.al_azan.SalahGuardPrayerScheduler
 import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -72,6 +73,7 @@ fun EditPrayerTimesScreen(
                         if (parsed.any { it == null }) timeError = true
                         else {
                             SalahGuardStore.names.forEachIndexed { i, prayer -> SalahGuardStore.set24(context, prayer, parsed[i]!!) }
+                            SalahGuardPrayerScheduler.reschedule(context)
                             onSaveTimes()
                         }
                     },
