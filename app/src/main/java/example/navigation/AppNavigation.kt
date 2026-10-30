@@ -28,12 +28,17 @@ import androidx.navigation.compose.rememberNavController
 import com.example.ui.screens.*
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
+import com.example.data.model.SalahGuardStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
+    val hasTimetable = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+        .getBoolean("manual_schedule_enabled", false)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Splash.route
 
@@ -52,7 +57,7 @@ fun AppNavigation(
             composable(Screen.Splash.route) {
                 SplashScreen(
                     onNavigateToHome = {
-                        navController.navigate(Screen.Home.route) {
+                        navController.navigate(if (hasTimetable) Screen.Home.route else Screen.LocationDetection.route) {
                             popUpTo(Screen.Splash.route) { inclusive = true }
                         }
                     }
