@@ -127,6 +127,18 @@
         </receiver>
 
         <receiver android:name=".SalahGuardTestAlarmReceiver" android:exported="false" />
+        <receiver android:name=".SalahGuardPrayerReceiver" android:exported="false" />
+        <receiver android:name=".SalahGuardPrayerRescheduleReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <activity android:name=".SalahGuardRealPrayerActivity" android:exported="false"
+            android:showWhenLocked="true" android:turnScreenOn="true"
+            android:theme="@style/Theme.AlAzan" />
         <activity android:name=".SalahGuardAccountabilityActivity" android:exported="false"
             android:showWhenLocked="true" android:turnScreenOn="true"
             android:theme="@style/Theme.AlAzan" />
