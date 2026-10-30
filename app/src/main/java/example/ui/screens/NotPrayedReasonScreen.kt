@@ -28,7 +28,7 @@ import com.example.ui.theme.*
 @Composable
 fun NotPrayedReasonScreen(
     onNavigateBack: () -> Unit,
-    onSubmitMissedReason: () -> Unit,
+    onSubmitMissedReason: (String, String) -> Unit,
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -90,7 +90,8 @@ fun NotPrayedReasonScreen(
 
                 // Submit Button (Red)
                 Button(
-                    onClick = onSubmitMissedReason,
+                    onClick = { if (selectedReason.isNotBlank() && explanationText.trim().length >= 15) onSubmitMissedReason(selectedReason, explanationText.trim()) },
+                    enabled = selectedReason.isNotBlank() && explanationText.trim().length >= 15,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SalahRed,
