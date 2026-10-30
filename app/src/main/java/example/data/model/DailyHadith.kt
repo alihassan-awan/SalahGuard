@@ -18,15 +18,18 @@ object DailyHadith {
     fun refresh(context: Context, onResult: (Pair<String,String>) -> Unit) {
         val today = LocalDate.now().toString()
         val p = context.getSharedPreferences("salahguard_hadith", Context.MODE_PRIVATE)
-        if (p.getString("date", "") == today) {
+        if (p.getString("date", "") == today && !p.getString("text", "").isNullOrBlank()) {
             onResult(current(context)); return
         }
         Thread {
             val number = numbers[(LocalDate.now().toEpochDay() % numbers.size).toInt().let {
                 if (it < 0) it + numbers.size else it
             }]
-            val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/$number.min.json"
-            val result = try {
+            var result: Pair<String,String>? = null
+            for (extension in listOf("min.json", "json")) {
+                if (result != null) break
+                val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-bukhari/$number.$extension"
+                result = try {
                 val connection = URL(url).openConnection() as HttpURLConnection
                 connection.connectTimeout = 6500
                 connection.readTimeout = 6500
@@ -36,7 +39,7 @@ object DailyHadith {
                         val raw = connection.inputStream.bufferedReader().use { it.readText() }
                         val json = JSONObject(raw)
                         val hadith = json.optJSONArray("hadiths")?.optJSONObject(0)
-                            ?: json.optJSONObject("hadith")
+                            ?: json.optJSONObject("hadith") ?: json
                         val value = hadith?.optString("text", "")?.trim().orEmpty()
                         if (value.length in 30..1400) {
                             val citation = "Sahih al-Bukhari $number • community translation"
@@ -46,7 +49,8 @@ object DailyHadith {
                         } else null
                     }
                 } finally { connection.disconnect() }
-            } catch (_: Exception) { null }
+                } catch (_: Exception) { null }
+            }
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 onResult(result ?: current(context))
             }
