@@ -22,6 +22,8 @@ object SalahGuardPrayerScheduler {
     const val ACTION = "com.alihassanawan.salahguard.PRAYER_DUE"
     private const val CHANNEL = "salahguard_prayer_v1"
     fun reschedule(context: Context) {
+        if (!context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
+                .getBoolean("manual_schedule_enabled", false)) return
         val alarm = context.getSystemService(AlarmManager::class.java)
         SalahGuardStore.names.forEachIndexed { index, name ->
             val intent = Intent(context, SalahGuardPrayerReceiver::class.java).setAction(ACTION)
