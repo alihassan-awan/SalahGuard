@@ -41,7 +41,7 @@ fun PrayerTimesSetupScreen(
     val context = LocalContext.current
     var gpsEnabled by remember { mutableStateOf(SalahGuardStore.gpsEnabled(context)) }
     var selectedCalculationMethod by remember { mutableStateOf(SalahGuardStore.setting(context, "calculation_method", "Muslim World League (MWL)")) }
-    var selectedAsrMethod by remember { mutableStateOf(SalahGuardStore.setting(context, "asr_method", "Standard (Shafi'i, Maliki, Hanbali)")) }
+    var selectedAsrMethod by remember { mutableStateOf(SalahGuardStore.setting(context, "asr_method", SalahGuardPrayerCalculator.suggestedAsrMethod(SalahGuardStore.city(context)))) }
     var is24HourFormat by remember { mutableStateOf(SalahGuardStore.is24(context)) }
 
     var calcDropdownExpanded by remember { mutableStateOf(false) }
@@ -162,6 +162,8 @@ fun PrayerTimesSetupScreen(
                     Column(Modifier.padding(16.dp)) {
                         Text("Calculated preview — today", color = SalahTextWhite,
                             fontWeight = FontWeight.Bold)
+                        Text("Asr school: " + selectedAsrMethod,
+                            color = SalahGold, fontSize = 13.sp)
                         Text("Location: " + SalahGuardStore.city(context),
                             color = SalahTextSecondary, fontSize = 12.sp)
                         if (preview == null) {
