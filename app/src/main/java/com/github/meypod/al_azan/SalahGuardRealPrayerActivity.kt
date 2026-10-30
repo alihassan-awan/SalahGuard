@@ -56,6 +56,7 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                         onPrayedClick = { page = "verify" },
                         onNotPrayedClick = { page = "reason" },
                         onSnoozeClick = {
+                            SalahGuardStore.recordSnooze(this, prayer)
                             SalahGuardPrayerScheduler.snooze(this, prayer)
                             finish()
                         },
