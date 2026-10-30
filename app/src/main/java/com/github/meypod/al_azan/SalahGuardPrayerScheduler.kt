@@ -129,9 +129,19 @@ class SalahGuardPrayerReceiver : BroadcastReceiver() {
         if (intent?.action != SalahGuardPrayerScheduler.ACTION) return
         val prayer = intent.getStringExtra("prayer") ?: return
         if (prayer !in SalahGuardStore.names) return
-        // A snoozed occurrence must not reset the five daily schedules.
-        if (!intent.getBooleanExtra("snoozed", false))
-            SalahGuardPrayerScheduler.reschedule(context)
+        // Snooze is a one-off notification, never a reason to change daily alarms.
+        if (!intent.getBooleanExtra("snoozed", false)) {
+            val prefs = context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
+            val needsNewDay = prefs.getString("timetable_mode", "manual") == "calculated" &&
+                prefs.getString("calculated_date", "") != SalahGuardStore.today()
+            if (needsNewDay) {
+                // At midnight rollover the stored timetable and all next alarms must agree.
+                SalahGuardPrayerScheduler.reschedule(context)
+            } else {
+                // Avoid canceling unrelated prayer alarms when a single prayer fires.
+                SalahGuardPrayerScheduler.schedulePrayer(context, prayer)
+            }
+        }
         SalahGuardPrayerScheduler.notifyPrayer(context, prayer)
     }
 }
