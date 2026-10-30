@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
 import com.example.data.model.SalahGuardStore
+import com.example.data.model.SalahGuardPrayerCalculator
+import com.github.meypod.al_azan.SalahGuardPrayerScheduler
 import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -43,6 +45,7 @@ fun PrayerTimesSetupScreen(
     var is24HourFormat by remember { mutableStateOf(SalahGuardStore.is24(context)) }
 
     var calcDropdownExpanded by remember { mutableStateOf(false) }
+    var autoError by remember { mutableStateOf(false) }
     var asrDropdownExpanded by remember { mutableStateOf(false) }
 
     val calculationMethods = listOf(
@@ -84,7 +87,14 @@ fun PrayerTimesSetupScreen(
                         SalahGuardStore.setSetting(context, "calculation_method", selectedCalculationMethod)
                         SalahGuardStore.setSetting(context, "asr_method", selectedAsrMethod)
                         SalahGuardStore.set24Format(context, is24HourFormat)
-                        onSaved()
+                        val ok = SalahGuardPrayerCalculator.calculate(context) != null
+                        if (ok) {
+                            SalahGuardStore.setSetting(context, "timetable_mode", "calculated")
+                            if (SalahGuardPrayerCalculator.apply(context)) SalahGuardPrayerScheduler.reschedule(context)
+                            onSaved()
+                        } else if (context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE).getBoolean("manual_schedule_enabled", false)) {
+                            onSaved()
+                        } else autoError = true
                     },
                     testTag = "save_settings_button"
                 )
@@ -99,6 +109,7 @@ fun PrayerTimesSetupScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            if (autoError) Text("GPS coordinates unavailable. Detect location or save all five manual prayer times first.", color = SalahGold)
             // Live Location (GPS) Card
             Surface(
                 modifier = Modifier
@@ -421,7 +432,7 @@ fun PrayerTimesSetupScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, SalahCardBorder)
                     ) {
                         Text(
-                            text = "5:20 AM",
+                            text = SalahGuardStore.display(SalahGuardStore.get24(context, "Fajr")),
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = SalahTextWhite,
                                 fontWeight = FontWeight.SemiBold
