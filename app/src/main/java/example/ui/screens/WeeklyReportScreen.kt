@@ -41,14 +41,15 @@ fun WeeklyReportScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val report = SalahGuardStore.weeklyReport(context)
+    var monthly by remember { mutableStateOf(false) }
+    val report = if (monthly) SalahGuardStore.monthlyReport(context) else SalahGuardStore.weeklyReport(context)
     val scrollState = rememberScrollState()
 
     Scaffold(
         containerColor = SalahDarkBg,
         topBar = {
             SalahGuardTopBar(
-                title = "Weekly Report",
+                title = if (monthly) "Monthly Report" else "Weekly Report",
                 subtitle = report.dateRange,
                 onBackClick = onNavigateBack,
                 onQuickSwitchClick = onQuickSwitchClick
@@ -75,6 +76,21 @@ fun WeeklyReportScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = !monthly,
+                    onClick = { monthly = false },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    label = { Text("Weekly") }
+                )
+                SegmentedButton(
+                    selected = monthly,
+                    onClick = { monthly = true },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    label = { Text("Monthly") }
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             // Main Gauge Card (matches mockup)
             Surface(
                 modifier = Modifier
