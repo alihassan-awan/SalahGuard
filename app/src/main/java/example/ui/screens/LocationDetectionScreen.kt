@@ -48,6 +48,8 @@ fun LocationDetectionScreen(
     val context = LocalContext.current
     var locationResult by remember { mutableStateOf(SalahGuardStore.city(context)) }
     var busy by remember { mutableStateOf(false) }
+    var hasFix by remember { mutableStateOf(SalahGuardStore.city(context) != "Location not detected") }
+    var permissionDenied by remember { mutableStateOf(false) }
     fun requestFix() {
         val manager = context.getSystemService(LocationManager::class.java)
         val provider = when {
@@ -65,16 +67,25 @@ fun LocationDetectionScreen(
                     else {
                         val lat = location.latitude
                         val lon = location.longitude
+                        val coordinates = "GPS: %.5f, %.5f".format(Locale.US, lat, lon)
+                        // Coordinates are the result; reverse geocoding is optional and must not block success.
+                        SalahGuardStore.setCity(context, coordinates, lat, lon)
+                        hasFix = true
+                        locationResult = coordinates
                         Thread {
                             val name = try {
                                 @Suppress("DEPRECATION")
                                 val address = Geocoder(context, Locale.getDefault())
                                     .getFromLocation(lat, lon, 1)?.firstOrNull()
                                 listOfNotNull(address?.locality ?: address?.subAdminArea,
-                                    address?.countryName).joinToString(", ").ifBlank { "Coordinates detected" }
-                            } catch (_: Exception) { "Coordinates detected" }
-                            SalahGuardStore.setCity(context, name, lat, lon)
-                            android.os.Handler(android.os.Looper.getMainLooper()).post { locationResult = name }
+                                    address?.countryName).joinToString(", ")
+                            } catch (_: Exception) { "" }
+                            if (name.isNotBlank()) {
+                                SalahGuardStore.setCity(context, name, lat, lon)
+                                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                    locationResult = name
+                                }
+                            }
                         }.start()
                     }
                 }
@@ -86,8 +97,10 @@ fun LocationDetectionScreen(
                 busy = false
                 if (location == null) locationResult = "No recent location. Retry with GPS enabled."
                 else {
-                    SalahGuardStore.setCity(context, "Coordinates detected", location.latitude, location.longitude)
-                    locationResult = "Coordinates detected"
+                    val coordinates = "GPS: %.5f, %.5f".format(Locale.US, location.latitude, location.longitude)
+                    SalahGuardStore.setCity(context, coordinates, location.latitude, location.longitude)
+                    hasFix = true
+                    locationResult = coordinates
                 }
             } catch (_: SecurityException) { busy = false; locationResult = "Location permission required" }
         }
@@ -96,7 +109,7 @@ fun LocationDetectionScreen(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
         if (results.values.any { it }) requestFix()
-        else locationResult = "Permission denied. You can continue with manual times."
+        else { permissionDenied = true; busy = false; locationResult = "Location permission denied. Use Android Settings or manual times." }
     }
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
@@ -107,6 +120,15 @@ fun LocationDetectionScreen(
             Manifest.permission.ACCESS_FINE_LOCATION))
     }
     val scrollState = rememberScrollState()
+    LaunchedEffect(busy) {
+        if (busy) {
+            kotlinx.coroutines.delay(35000L)
+            if (busy) {
+                busy = false
+                locationResult = "Location timed out. Retry or continue with manual setup."
+            }
+        }
+    }
 
     // Pulse animation for location radar
     val infiniteTransition = rememberInfiniteTransition(label = "radar")
@@ -241,10 +263,16 @@ fun LocationDetectionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                LocationCheckItem(title = "Checking GPS")
-                LocationCheckItem(title = "Retrieving coordinates")
-                LocationCheckItem(title = "Finding your city")
-                LocationCheckItem(title = "Manual prayer times (calculation not connected)")
+                Text(
+                    text = when {
+                        hasFix -> "GPS coordinates saved. City name lookup is optional."
+                        busy -> "Requesting coordinates from Android location services..."
+                        permissionDenied -> "Location access is not allowed."
+                        else -> "Location not confirmed. Manual setup is available."
+                    },
+                    color = if (hasFix) SalahEmeraldLight else SalahTextSecondary,
+                    fontSize = 14.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -268,7 +296,7 @@ fun LocationDetectionScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(SalahEmerald),
+                            .background(if (hasFix) SalahEmerald else SalahCardBorder),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -292,7 +320,7 @@ fun LocationDetectionScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = if (SalahGuardStore.city(context) == "Location not detected") "Location not yet detected" else "Location stored locally",
+                            text = if (hasFix) "GPS coordinates saved locally" else "GPS not verified — continue with manual setup",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = SalahEmeraldLight,
                                 fontWeight = FontWeight.Medium,
@@ -304,6 +332,17 @@ fun LocationDetectionScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(
+                onClick = {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                        PackageManager.PERMISSION_GRANTED ||
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                        PackageManager.PERMISSION_GRANTED) requestFix()
+                    else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION))
+                },
+                enabled = !busy
+            ) { Text("Retry location detection") }
         }
     }
 }
