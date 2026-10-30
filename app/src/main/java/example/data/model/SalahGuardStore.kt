@@ -63,6 +63,45 @@ object SalahGuardStore {
         val p = prefs(context)
         p.edit().putInt(key, p.getInt(key, 0) + 1).apply()
     }
+    fun monthlyReport(context: Context): WeeklyReportData {
+        val p = prefs(context)
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val days = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+        val completed = mutableMapOf<String, Int>()
+        val missed = mutableMapOf<String, Int>()
+        var snoozes = 0
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        for (day in 1..days) {
+            val date = formatter.format(cal.time)
+            names.forEach { name ->
+                when (p.getString("status_${date}_$name", "Unconfirmed")) {
+                    "Completed" -> completed[name] = (completed[name] ?: 0) + 1
+                    "NotPrayed" -> missed[name] = (missed[name] ?: 0) + 1
+                }
+                snoozes += p.getInt("snooze_${date}_$name", 0)
+            }
+            cal.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        val prayed = completed.values.sum()
+        val notPrayed = missed.values.sum()
+        val total = days * names.size
+        val most = missed.maxByOrNull { it.value }
+        return WeeklyReportData(
+            dateRange = SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(Date()),
+            completionPercentage = if (total == 0) 0 else prayed * 100 / total,
+            completedCount = prayed, totalCount = total,
+            prayedCount = prayed, snoozedCount = snoozes,
+            missedCount = notPrayed, pendingCount = (total - prayed - notPrayed).coerceAtLeast(0),
+            mostMissedPrayer = most?.key ?: "None recorded",
+            mostMissedCount = most?.value ?: 0
+        )
+    }
     fun weeklyReport(context: Context): WeeklyReportData {
         val p = prefs(context)
         val calendar = Calendar.getInstance()
