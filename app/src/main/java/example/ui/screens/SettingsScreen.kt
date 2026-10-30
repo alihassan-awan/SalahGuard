@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.*
+import com.example.data.model.SalahGuardStore
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.theme.*
 
 @Composable
@@ -36,18 +38,19 @@ fun SettingsScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var adhanSound by remember { mutableStateOf("Default Adhan") }
-    var vibrationEnabled by remember { mutableStateOf(true) }
-    var fullScreenAlarmEnabled by remember { mutableStateOf(true) }
-    var snoozeDuration by remember { mutableStateOf("10 minutes") }
-    var liveLocationGps by remember { mutableStateOf(true) }
-    var detectedLocation by remember { mutableStateOf("Multan, Pakistan") }
-    var calculationMethod by remember { mutableStateOf("Muslim World League (MWL)") }
+    val context = LocalContext.current
+    var adhanSound by remember { mutableStateOf(SalahGuardStore.setting(context, "alarm_sound", "System alarm")) }
+    var vibrationEnabled by remember { mutableStateOf(SalahGuardStore.setting(context, "alarm_vibrate", "true") == "true") }
+    var fullScreenAlarmEnabled by remember { mutableStateOf(SalahGuardStore.setting(context, "alarm_fullscreen", "true") == "true") }
+    var snoozeDuration by remember { mutableStateOf(SalahGuardStore.setting(context, "alarm_snooze", "10 minutes")) }
+    var liveLocationGps by remember { mutableStateOf(SalahGuardStore.gpsEnabled(context)) }
+    val detectedLocation = SalahGuardStore.city(context)
+    val calculationMethod = SalahGuardStore.setting(context, "calculation_method", "Muslim World League (MWL)")
 
     var adhanMenuExpanded by remember { mutableStateOf(false) }
     var snoozeMenuExpanded by remember { mutableStateOf(false) }
 
-    val adhanOptions = listOf("Default Adhan", "Makkah Adhan", "Madinah Adhan", "Al-Aqsa Adhan", "Gentle Chime")
+    val adhanOptions = listOf("System alarm", "Silent")
     val snoozeOptions = listOf("5 minutes", "10 minutes", "15 minutes")
 
     val scrollState = rememberScrollState()
@@ -147,6 +150,7 @@ fun SettingsScreen(
                                     text = { Text(opt, color = SalahTextWhite) },
                                     onClick = {
                                         adhanSound = opt
+                                        SalahGuardStore.setSetting(context, "alarm_sound", opt)
                                         adhanMenuExpanded = false
                                     }
                                 )
@@ -173,7 +177,7 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = vibrationEnabled,
-                            onCheckedChange = { vibrationEnabled = it },
+                            onCheckedChange = { vibrationEnabled = it; SalahGuardStore.setSetting(context, "alarm_vibrate", it.toString()) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SalahTextWhite,
                                 checkedTrackColor = SalahEmerald,
@@ -203,7 +207,7 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = fullScreenAlarmEnabled,
-                            onCheckedChange = { fullScreenAlarmEnabled = it },
+                            onCheckedChange = { fullScreenAlarmEnabled = it; SalahGuardStore.setSetting(context, "alarm_fullscreen", it.toString()) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SalahTextWhite,
                                 checkedTrackColor = SalahEmerald,
@@ -261,6 +265,7 @@ fun SettingsScreen(
                                     text = { Text(opt, color = SalahTextWhite) },
                                     onClick = {
                                         snoozeDuration = opt
+                                        SalahGuardStore.setSetting(context, "alarm_snooze", opt)
                                         snoozeMenuExpanded = false
                                     }
                                 )
@@ -318,7 +323,7 @@ fun SettingsScreen(
                         }
                         Switch(
                             checked = liveLocationGps,
-                            onCheckedChange = { liveLocationGps = it },
+                            onCheckedChange = { liveLocationGps = it; SalahGuardStore.setGpsEnabled(context, it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SalahTextWhite,
                                 checkedTrackColor = SalahEmerald,
