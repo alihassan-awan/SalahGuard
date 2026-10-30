@@ -74,7 +74,8 @@ fun EditPrayerTimesScreen(
                         else {
                             SalahGuardStore.names.forEachIndexed { i, prayer -> SalahGuardStore.set24(context, prayer, parsed[i]!!) }
                             context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
-                                .edit().putBoolean("manual_schedule_enabled", true).apply()
+                                .edit().putBoolean("manual_schedule_enabled", true)
+                                .putString("timetable_mode", "manual").apply()
                             SalahGuardPrayerScheduler.reschedule(context)
                             onSaveTimes()
                         }
