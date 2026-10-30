@@ -34,8 +34,9 @@ fun PrayedVerificationScreen(
 ) {
     var verificationText by remember { mutableStateOf("") }
     var selectedDetail by remember { mutableStateOf("") }
-    val isVerified = verificationText.trim() == "I PRAYED"
+    val isVerified = verificationText.trim().equals("I PRAYED", ignoreCase = true)
     val scrollState = rememberScrollState()
+    var showValidation by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = SalahDarkBg,
@@ -79,8 +80,8 @@ fun PrayedVerificationScreen(
 
                 // Confirm Button
                 Button(
-                    onClick = { if (isVerified && selectedDetail.isNotBlank()) onConfirmPrayed(selectedDetail) },
-                    enabled = isVerified && selectedDetail.isNotBlank(),
+                    onClick = { if (isVerified && selectedDetail.isNotBlank()) onConfirmPrayed(selectedDetail) else showValidation = true },
+
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SalahEmerald,
@@ -174,6 +175,8 @@ fun PrayedVerificationScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
+                    if (showValidation) Text("براہِ کرم I PRAYED لکھیں اور نماز کی کیفیت منتخب کریں۔",
+                        color = Color(0xFFB91C1C), fontSize = 13.sp)
                     Text("How did you pray? Select honestly:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF334155))
@@ -185,7 +188,7 @@ fun PrayedVerificationScreen(
                             Text(option, color = Color(0xFF334155), fontSize = 13.sp)
                         }
                     }
-                    Text("Prayer is a trust with Allah. Choose only what truly happened.",
+                    Text("نماز اللہ کی امانت ہے۔ صرف وہی کیفیت منتخب کریں جو حقیقت میں پیش آئی ہو۔",
                         color = Color(0xFF64748B), fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(16.dp))
 
