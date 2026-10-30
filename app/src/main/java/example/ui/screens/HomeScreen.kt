@@ -102,8 +102,10 @@ fun HomeScreen(
             },
             isNext = i == nextIndex)
     }
-    val nextPrayerName = SalahGuardStore.names[nextIndex]
-    val nextPrayerTime = SalahGuardStore.display(values[nextIndex], SalahGuardStore.is24(context))
+    val isScheduleConfigured = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+        .getBoolean("manual_schedule_enabled", false)
+    val nextPrayerName = if (isScheduleConfigured) SalahGuardStore.names[nextIndex] else "Set prayer times"
+    val nextPrayerTime = if (isScheduleConfigured) SalahGuardStore.display(values[nextIndex], SalahGuardStore.is24(context)) else "--:--"
 
     Scaffold(
         containerColor = SalahDarkBg,
@@ -135,6 +137,20 @@ fun HomeScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 6.dp)
         ) {
+            if (!isScheduleConfigured) {
+                Surface(
+                    color = SalahCardBg,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToTimes)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Prayer times not configured", color = SalahGold, fontWeight = FontWeight.Bold)
+                        Text("Set your actual city and prayer timetable before relying on alerts. Tap to set up.",
+                            color = SalahTextWhite, fontSize = 13.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             // Gregorian & Islamic Date Header
             Text(
                 text = SimpleDateFormat("EEE, dd MMM yyyy", Locale.ENGLISH).format(timeNow.time),
@@ -392,7 +408,7 @@ fun HomeScreen(
 
                             Column {
                                 Text(
-                                    text = "Zuhr",
+                                    text = nextPrayerName,
                                     style = MaterialTheme.typography.headlineLarge.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 26.sp,
@@ -401,7 +417,7 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = countdownFormatted,
+                                    text = if (isScheduleConfigured) countdownFormatted else "--:--:--",
                                     style = MaterialTheme.typography.displayLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 30.sp,
