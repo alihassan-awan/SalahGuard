@@ -66,6 +66,16 @@ fun PrayerTimesSetupScreen(
         "Hanafi"
     )
 
+    // Preview is calculated from the *currently selected* method, not stale saved settings.
+    val savedCoordinates = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+        .getString("gps_coords", null)
+    val preview = if (useCalculatedTimes) SalahGuardPrayerCalculator.calculateForCoordinates(
+        savedCoordinates,
+        selectedCalculationMethod,
+        selectedAsrMethod,
+        java.time.LocalDate.now(),
+        java.time.ZoneId.systemDefault()
+    ) else null
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -146,6 +156,33 @@ fun PrayerTimesSetupScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
+            if (useCalculatedTimes) {
+                Surface(color = SalahCardBg, shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Calculated preview — today", color = SalahTextWhite,
+                            fontWeight = FontWeight.Bold)
+                        Text("Location: " + SalahGuardStore.city(context),
+                            color = SalahTextSecondary, fontSize = 12.sp)
+                        if (preview == null) {
+                            Text("No valid GPS coordinates. Detect location before saving.",
+                                color = SalahGold)
+                        } else {
+                            SalahGuardStore.names.forEach { prayer ->
+                                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(prayer, color = SalahTextWhite)
+                                    Text(SalahGuardStore.display(preview.getValue(prayer), is24HourFormat),
+                                        color = SalahEmeraldLight)
+                                }
+                            }
+                        }
+                        Text("Times are astronomical estimates. Compare with your local mosque timetable.",
+                            color = SalahTextSecondary, fontSize = 12.sp)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
             // Live Location (GPS) Card
             Surface(
                 modifier = Modifier
