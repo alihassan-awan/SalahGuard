@@ -23,6 +23,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.app.AlarmManager
+import android.app.NotificationManager
+import android.os.Build
+import android.content.Intent
+import android.provider.Settings
+import android.net.Uri
 import com.example.ui.components.*
 import com.example.data.model.SalahGuardStore
 import androidx.compose.ui.platform.LocalContext
@@ -418,6 +424,49 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(22.dp))
+
+            // Permission diagnostics: explain why real alarms may be blocked on this device.
+            val alarmManager = context.getSystemService(AlarmManager::class.java)
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            val notificationsAllowed = notificationManager.areNotificationsEnabled()
+            val exactAllowed = Build.VERSION.SDK_INT < 31 || alarmManager.canScheduleExactAlarms()
+            Surface(
+                color = SalahCardBg,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Alarm reliability", color = SalahTextWhite, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Notifications: " + if (notificationsAllowed) "Allowed" else "Blocked",
+                        color = if (notificationsAllowed) SalahEmerald else SalahGold
+                    )
+                    Text(
+                        "Exact alarm access: " + if (exactAllowed) "Allowed" else "Not allowed (may ring late)",
+                        color = if (exactAllowed) SalahEmerald else SalahGold
+                    )
+                    if (!notificationsAllowed) {
+                        TextButton(onClick = {
+                            context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            })
+                        }) { Text("Open notification settings") }
+                    }
+                    if (!exactAllowed && Build.VERSION.SDK_INT >= 31) {
+                        TextButton(onClick = {
+                            context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                data = Uri.parse("package:" + context.packageName)
+                            })
+                        }) { Text("Allow exact alarms") }
+                    }
+                    Text(
+                        "Phone battery restrictions and Do Not Disturb can still delay or silence reminders.",
+                        color = SalahTextSecondary, fontSize = 12.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Developer Screen 12 Shortcut Banner
             Surface(
