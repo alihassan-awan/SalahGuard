@@ -94,8 +94,12 @@ fun HomeScreen(
     val prayers = types.mapIndexed { i, type ->
         PrayerScheduleItem(type,
             time = SalahGuardStore.display(values[i], SalahGuardStore.is24(context)),
-            status = if (SalahGuardStore.verified(context, SalahGuardStore.names[i])) PrayerStatus.PRAYED
-                else PrayerStatus.PENDING,
+            status = when (context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+                .getString("status_${SalahGuardStore.today()}_${SalahGuardStore.names[i]}", "Unconfirmed")) {
+                "Completed" -> PrayerStatus.PRAYED
+                "NotPrayed" -> PrayerStatus.NOT_PRAYED
+                else -> PrayerStatus.PENDING
+            },
             isNext = i == nextIndex)
     }
     val nextPrayerName = SalahGuardStore.names[nextIndex]
