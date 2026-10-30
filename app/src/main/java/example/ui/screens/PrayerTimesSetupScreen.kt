@@ -46,6 +46,11 @@ fun PrayerTimesSetupScreen(
 
     var calcDropdownExpanded by remember { mutableStateOf(false) }
     var autoError by remember { mutableStateOf(false) }
+    var useCalculatedTimes by remember { mutableStateOf(
+        SalahGuardStore.setting(context, "timetable_mode", "calculated") != "manual" ||
+            !context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+                .getBoolean("manual_schedule_enabled", false)
+    ) }
     var asrDropdownExpanded by remember { mutableStateOf(false) }
 
     val calculationMethods = listOf(
@@ -87,14 +92,22 @@ fun PrayerTimesSetupScreen(
                         SalahGuardStore.setSetting(context, "calculation_method", selectedCalculationMethod)
                         SalahGuardStore.setSetting(context, "asr_method", selectedAsrMethod)
                         SalahGuardStore.set24Format(context, is24HourFormat)
-                        val ok = SalahGuardPrayerCalculator.calculate(context) != null
-                        if (ok) {
-                            SalahGuardStore.setSetting(context, "timetable_mode", "calculated")
-                            if (SalahGuardPrayerCalculator.apply(context)) SalahGuardPrayerScheduler.reschedule(context)
-                            onSaved()
-                        } else if (context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE).getBoolean("manual_schedule_enabled", false)) {
-                            onSaved()
-                        } else autoError = true
+                        if (useCalculatedTimes) {
+                            // Explicit opt-in: never silently replace manually entered prayer times.
+                            if (SalahGuardPrayerCalculator.calculate(context) != null) {
+                                SalahGuardStore.setSetting(context, "timetable_mode", "calculated")
+                                if (SalahGuardPrayerCalculator.apply(context)) {
+                                    SalahGuardPrayerScheduler.reschedule(context)
+                                    onSaved()
+                                } else autoError = true
+                            } else autoError = true
+                        } else {
+                            val p = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+                            if (p.getBoolean("manual_schedule_enabled", false)) {
+                                SalahGuardStore.setSetting(context, "timetable_mode", "manual")
+                                onSaved()
+                            } else autoError = true
+                        }
                     },
                     testTag = "save_settings_button"
                 )
@@ -110,6 +123,29 @@ fun PrayerTimesSetupScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             if (autoError) Text("GPS coordinates unavailable. Detect location or save all five manual prayer times first.", color = SalahGold)
+            Surface(
+                color = SalahCardBg,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Text("Prayer timetable source", color = SalahTextWhite, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = useCalculatedTimes, onClick = { useCalculatedTimes = true; autoError = false })
+                        Text("Automatic from saved GPS coordinates", color = SalahTextWhite,
+                            modifier = Modifier.clickable { useCalculatedTimes = true; autoError = false })
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = !useCalculatedTimes, onClick = { useCalculatedTimes = false; autoError = false })
+                        Text("My manually entered prayer times", color = SalahTextWhite,
+                            modifier = Modifier.clickable { useCalculatedTimes = false; autoError = false })
+                    }
+                    Text("Automatic times depend on calculation method and device timezone. Confirm against your local masjid timetable.",
+                        color = SalahTextSecondary, fontSize = 12.sp)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
             // Live Location (GPS) Card
             Surface(
                 modifier = Modifier
