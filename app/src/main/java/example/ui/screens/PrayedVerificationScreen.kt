@@ -26,12 +26,13 @@ import com.example.ui.theme.*
 @Composable
 fun PrayedVerificationScreen(
     onNavigateBack: () -> Unit,
-    onConfirmPrayed: () -> Unit,
+    onConfirmPrayed: (String) -> Unit,
     onQuickSwitchClick: () -> Unit,
     prayerName: String = "Zuhr",
     modifier: Modifier = Modifier
 ) {
     var verificationText by remember { mutableStateOf("") }
+    var selectedDetail by remember { mutableStateOf("On time") }
     val isVerified = verificationText.trim() == "I PRAYED"
     val scrollState = rememberScrollState()
 
@@ -77,7 +78,7 @@ fun PrayedVerificationScreen(
 
                 // Confirm Button
                 Button(
-                    onClick = { if (isVerified) onConfirmPrayed() },
+                    onClick = { if (isVerified) onConfirmPrayed(selectedDetail) },
                     enabled = isVerified,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -171,7 +172,21 @@ fun PrayedVerificationScreen(
                             .testTag("verify_input_field")
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("How did you pray? Select honestly:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF334155))
+                    listOf("On time", "Late, but within prayer time", "Made up a missed prayer (Qada)").forEach { option ->
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable { selectedDetail = option }.padding(vertical = 3.dp)) {
+                            RadioButton(selected = selectedDetail == option, onClick = { selectedDetail = option })
+                            Text(option, color = Color(0xFF334155), fontSize = 13.sp)
+                        }
+                    }
+                    Text("Prayer is a trust with Allah. Choose only what truly happened.",
+                        color = Color(0xFF64748B), fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Reflection Checklist
                     Column(
