@@ -24,8 +24,13 @@ object SalahGuardPrayerScheduler {
     fun reschedule(context: Context) {
         if (!context.getSharedPreferences("salahguard_v03", Context.MODE_PRIVATE)
                 .getBoolean("manual_schedule_enabled", false)) return
+        SalahGuardStore.names.forEach { name -> schedulePrayer(context, name) }
+    }
+    fun schedulePrayer(context: Context, name: String) {
+        if (name !in SalahGuardStore.names) return
+        val index = SalahGuardStore.names.indexOf(name)
         val alarm = context.getSystemService(AlarmManager::class.java)
-        SalahGuardStore.names.forEachIndexed { index, name ->
+        run {
             val intent = Intent(context, SalahGuardPrayerReceiver::class.java).setAction(ACTION)
                 .putExtra("prayer", name)
             val pending = PendingIntent.getBroadcast(context, 94000 + index, intent,
@@ -99,7 +104,7 @@ class SalahGuardPrayerReceiver : BroadcastReceiver() {
         if (prayer !in SalahGuardStore.names) return
         // A snoozed occurrence must not reset the five daily schedules.
         if (!intent.getBooleanExtra("snoozed", false))
-            SalahGuardPrayerScheduler.reschedule(context)
+            SalahGuardPrayerScheduler.schedulePrayer(context, prayer)
         SalahGuardPrayerScheduler.notifyPrayer(context, prayer)
     }
 }
