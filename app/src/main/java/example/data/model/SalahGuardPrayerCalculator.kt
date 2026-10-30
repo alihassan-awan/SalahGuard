@@ -1,11 +1,11 @@
 package com.example.data.model
 
 import android.content.Context
-import com.batoulapps.adhan2.CalculationMethod
-import com.batoulapps.adhan2.Coordinates
-import com.batoulapps.adhan2.DateComponents
-import com.batoulapps.adhan2.Madhab
-import com.batoulapps.adhan2.PrayerTimes
+import com.batoulapps.adhan.CalculationMethod
+import com.batoulapps.adhan.Coordinates
+import com.batoulapps.adhan.DateComponents
+import com.batoulapps.adhan.Madhab
+import com.batoulapps.adhan.PrayerTimes
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
