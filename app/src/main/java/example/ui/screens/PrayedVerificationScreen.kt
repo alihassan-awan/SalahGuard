@@ -32,7 +32,7 @@ fun PrayedVerificationScreen(
     modifier: Modifier = Modifier
 ) {
     var verificationText by remember { mutableStateOf("") }
-    var selectedDetail by remember { mutableStateOf("On time") }
+    var selectedDetail by remember { mutableStateOf("") }
     val isVerified = verificationText.trim() == "I PRAYED"
     val scrollState = rememberScrollState()
 
@@ -78,8 +78,8 @@ fun PrayedVerificationScreen(
 
                 // Confirm Button
                 Button(
-                    onClick = { if (isVerified) onConfirmPrayed(selectedDetail) },
-                    enabled = isVerified,
+                    onClick = { if (isVerified && selectedDetail.isNotBlank()) onConfirmPrayed(selectedDetail) },
+                    enabled = isVerified && selectedDetail.isNotBlank(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SalahEmerald,
