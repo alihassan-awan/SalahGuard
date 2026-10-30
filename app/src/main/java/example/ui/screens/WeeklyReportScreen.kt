@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.WeeklyReportData
+import com.example.data.model.SalahGuardStore
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.*
 import com.example.ui.theme.*
 
@@ -38,7 +40,8 @@ fun WeeklyReportScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val report = remember { WeeklyReportData() }
+    val context = LocalContext.current
+    val report = SalahGuardStore.weeklyReport(context)
     val scrollState = rememberScrollState()
 
     Scaffold(
