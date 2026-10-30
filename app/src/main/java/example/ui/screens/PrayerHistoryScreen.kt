@@ -27,6 +27,7 @@ import com.example.data.model.PrayerStatus
 import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Calendar
 import java.util.Locale
 import com.example.data.model.PrayerScheduleItem
 import com.example.data.model.PrayerType
@@ -44,7 +45,10 @@ fun PrayerHistoryScreen(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
-    val day = SalahGuardStore.today()
+    var dayOffset by remember { mutableIntStateOf(0) }
+    var selectedDetail by remember { mutableStateOf<String?>(null) }
+    val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
+    val day = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)
     val dayPrayers = PrayerType.entries.map { type ->
         val status = prefs.getString("status_${day}_${type.displayName}", "Unconfirmed")
         PrayerScheduleItem(type,
@@ -57,12 +61,13 @@ fun PrayerHistoryScreen(
             })
     }
     val dayHistory = DayHistory(
-        dateDisplay = SimpleDateFormat("EEE, dd MMM yyyy", Locale.ENGLISH).format(Date()),
+        dateDisplay = SimpleDateFormat("EEE, dd MMM yyyy", Locale.ENGLISH).format(calendar.time),
         prayers = dayPrayers
     )
     val prayedCount = dayPrayers.count { it.status == PrayerStatus.PRAYED }
     val notPrayedCount = dayPrayers.count { it.status == PrayerStatus.NOT_PRAYED }
     val pendingCount = dayPrayers.count { it.status == PrayerStatus.PENDING }
+    val snoozedCount = PrayerType.entries.sumOf { prefs.getInt("snooze_${day}_${it.displayName}", 0) }
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -81,7 +86,7 @@ fun PrayerHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { /* Previous Day */ },
+                        onClick = { dayOffset-- },
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
@@ -94,7 +99,7 @@ fun PrayerHistoryScreen(
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Today",
+                            text = if (dayOffset == 0) "Today" else "Prayer History",
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = SalahTextWhite,
@@ -123,7 +128,7 @@ fun PrayerHistoryScreen(
                             )
                         }
                         IconButton(
-                            onClick = { /* Next Day */ },
+                            onClick = { if (dayOffset < 0) dayOffset++ },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
@@ -200,7 +205,7 @@ fun PrayerHistoryScreen(
             ) {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     dayHistory.prayers.forEachIndexed { index, prayer ->
-                        HistoryPrayerRow(prayer = prayer)
+                        HistoryPrayerRow(prayer = prayer, onClick = { selectedDetail = prayer.name })
                         if (index < dayHistory.prayers.size - 1) {
                             HorizontalDivider(
                                 color = SalahCardBorder.copy(alpha = 0.5f),
@@ -230,25 +235,53 @@ fun PrayerHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HistoryMetricCol(count = prayedCount.toString(), label = "Prayed", color = SalahEmerald)
-                    HistoryMetricCol(count = "0", label = "Snoozed", color = SalahOrange)
+                    HistoryMetricCol(count = snoozedCount.toString(), label = "Snoozed", color = SalahOrange)
                     HistoryMetricCol(count = notPrayedCount.toString(), label = "Not prayed", color = SalahRed)
                     HistoryMetricCol(count = pendingCount.toString(), label = "Pending", color = SalahTextSecondary)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            if (selectedDetail != null) {
+                val prayer = selectedDetail!!
+                val status = prefs.getString("status_${day}_$prayer", "Unconfirmed")
+                val detail = prefs.getString("prayed_detail_${day}_$prayer", null)
+                val reason = prefs.getString("reason_${day}_$prayer", null)
+                val snoozes = prefs.getInt("snooze_${day}_$prayer", 0)
+                val timestamp = prefs.getLong("verified_at_${day}_$prayer", 0L)
+                AlertDialog(
+                    onDismissRequest = { selectedDetail = null },
+                    title = { Text("$prayer • $day") },
+                    text = {
+                        Column {
+                            Text("Status: " + (status ?: "Unconfirmed"))
+                            if (detail != null) Text("How you prayed: $detail")
+                            if (timestamp > 0L) Text("Confirmed at: " +
+                                SimpleDateFormat("h:mm a", Locale.US).format(Date(timestamp)))
+                            if (reason != null) Text("Explanation: $reason")
+                            Text("Snoozed: $snoozes time(s)")
+                            if (status == "Unconfirmed") Text("No completion has been recorded.")
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { selectedDetail = null }) { Text("Close") }
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun HistoryPrayerRow(
-    prayer: PrayerScheduleItem
+    prayer: PrayerScheduleItem,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         PrayerIcon(
