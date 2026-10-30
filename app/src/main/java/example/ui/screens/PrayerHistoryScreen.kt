@@ -22,6 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.DayHistory
+import com.example.data.model.SalahGuardStore
+import com.example.data.model.PrayerStatus
+import androidx.compose.ui.platform.LocalContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.example.data.model.PrayerScheduleItem
 import com.example.data.model.PrayerType
 import com.example.ui.components.*
@@ -36,7 +42,27 @@ fun PrayerHistoryScreen(
     onQuickSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dayHistory = remember { DayHistory() }
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+    val day = SalahGuardStore.today()
+    val dayPrayers = PrayerType.entries.map { type ->
+        val status = prefs.getString("status_${day}_${type.displayName}", "Unconfirmed")
+        PrayerScheduleItem(type,
+            time = SalahGuardStore.display(SalahGuardStore.get24(context, type.displayName),
+                SalahGuardStore.is24(context)),
+            status = when(status) {
+                "Completed" -> PrayerStatus.PRAYED
+                "NotPrayed" -> PrayerStatus.NOT_PRAYED
+                else -> PrayerStatus.PENDING
+            })
+    }
+    val dayHistory = DayHistory(
+        dateDisplay = SimpleDateFormat("EEE, dd MMM yyyy", Locale.ENGLISH).format(Date()),
+        prayers = dayPrayers
+    )
+    val prayedCount = dayPrayers.count { it.status == PrayerStatus.PRAYED }
+    val notPrayedCount = dayPrayers.count { it.status == PrayerStatus.NOT_PRAYED }
+    val pendingCount = dayPrayers.count { it.status == PrayerStatus.PENDING }
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -203,10 +229,10 @@ fun PrayerHistoryScreen(
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HistoryMetricCol(count = "1", label = "Prayed", color = SalahEmerald)
+                    HistoryMetricCol(count = prayedCount.toString(), label = "Prayed", color = SalahEmerald)
                     HistoryMetricCol(count = "0", label = "Snoozed", color = SalahOrange)
-                    HistoryMetricCol(count = "0", label = "Missed", color = SalahRed)
-                    HistoryMetricCol(count = "4", label = "Pending", color = SalahTextSecondary)
+                    HistoryMetricCol(count = notPrayedCount.toString(), label = "Not prayed", color = SalahRed)
+                    HistoryMetricCol(count = pendingCount.toString(), label = "Pending", color = SalahTextSecondary)
                 }
             }
 
