@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar
 
 /** Read-through bridge to the existing SalahGuard manual timetable preferences. */
 object SalahGuardStore {
@@ -57,6 +58,62 @@ object SalahGuardStore {
     fun is24(context: Context) = prefs(context).getBoolean("time_format_24", false)
     fun set24Format(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean("time_format_24", value).apply()
+    fun recordSnooze(context: Context, prayer: String) {
+        val key = "snooze_${today()}_$prayer"
+        val p = prefs(context)
+        p.edit().putInt(key, p.getInt(key, 0) + 1).apply()
+    }
+    fun weeklyReport(context: Context): WeeklyReportData {
+        val p = prefs(context)
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        // Monday-Sunday calendar week; future days are not counted as completed or missed.
+        val daysSinceMonday = (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
+        calendar.add(Calendar.DAY_OF_YEAR, -daysSinceMonday)
+        val start = calendar.time
+        val end = Calendar.getInstance().apply {
+            time = start
+            add(Calendar.DAY_OF_YEAR, 6)
+        }.time
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        var prayed = 0
+        var notPrayed = 0
+        var snoozes = 0
+        val perPrayer = names.associateWith { 0 }.toMutableMap()
+        val todayDate = today()
+        for (offset in 0..6) {
+            val date = dateFormat.format(calendar.time)
+            if (date <= todayDate) {
+                for (name in names) {
+                    when (p.getString("status_${date}_$name", "Unconfirmed")) {
+                        "Completed" -> prayed++
+                        "NotPrayed" -> {
+                            notPrayed++
+                            perPrayer[name] = (perPrayer[name] ?: 0) + 1
+                        }
+                    }
+                    snoozes += p.getInt("snooze_${date}_$name", 0)
+                }
+            }
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        val elapsed = daysSinceMonday + 1
+        val total = elapsed * names.size
+        val pending = (total - prayed - notPrayed).coerceAtLeast(0)
+        val most = perPrayer.maxByOrNull { it.value }
+        val range = SimpleDateFormat("d MMM", Locale.ENGLISH).format(start) +
+            " – " + SimpleDateFormat("d MMM yyyy", Locale.ENGLISH).format(end)
+        return WeeklyReportData(dateRange = range,
+            completionPercentage = if (total == 0) 0 else prayed * 100 / total,
+            completedCount = prayed, totalCount = total,
+            prayedCount = prayed, snoozedCount = snoozes,
+            missedCount = notPrayed, pendingCount = pending,
+            mostMissedPrayer = if (most == null || most.value == 0) "None recorded" else most.key,
+            mostMissedCount = most?.value ?: 0)
+    }
     fun today(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     fun verified(context: Context, prayer: String) =
         prefs(context).getString("status_${today()}_$prayer", "Unconfirmed") == "Completed"
