@@ -115,7 +115,7 @@ fun AppNavigation(
             composable(Screen.ConfirmPrayer.route) {
                 PrayedVerificationScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onConfirmPrayed = { navController.navigate(Screen.PrayerHistory.route) },
+                    onConfirmPrayed = { _ -> navController.navigate(Screen.PrayerHistory.route) },
                     onQuickSwitchClick = openSwitcher
                 )
             }
