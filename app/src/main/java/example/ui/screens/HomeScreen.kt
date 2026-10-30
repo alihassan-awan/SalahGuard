@@ -65,8 +65,11 @@ fun HomeScreen(
 
     val context = LocalContext.current
     var dailyHadith by remember { mutableStateOf(DailyHadith.current(context)) }
-    LaunchedEffect(java.time.LocalDate.now().toString()) {
-        DailyHadith.refresh(context) { dailyHadith = it }
+    LaunchedEffect(Unit) {
+        while (true) {
+            DailyHadith.refresh(context) { dailyHadith = it }
+            kotlinx.coroutines.delay(30 * 60 * 1000L)
+        }
     }
     var secondsTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
