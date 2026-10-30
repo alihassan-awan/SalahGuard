@@ -33,16 +33,16 @@ fun NotPrayedReasonScreen(
     modifier: Modifier = Modifier
 ) {
     val reasons = listOf(
-        "Work / busy",
-        "Laziness",
-        "Phone / social media",
-        "Overslept",
-        "Forgot",
-        "Illness / travel",
+        "I kept delaying it",
+        "I chose my phone / entertainment",
+        "Work took priority",
+        "I overslept",
+        "I forgot",
+        "Illness or genuine hardship",
         "Other"
     )
 
-    var selectedReason by remember { mutableStateOf("Phone / social media") }
+    var selectedReason by remember { mutableStateOf("") }
     var explanationText by remember { mutableStateOf("") }
     val maxChars = 200
 
@@ -211,6 +211,29 @@ fun NotPrayedReasonScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(color = SalahCardBg, shape = RoundedCornerShape(12.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("A moment of honest reflection", color = SalahGold,
+                        fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(
+                        text = when (selectedReason) {
+                            "I kept delaying it" -> "What felt more urgent than meeting Allah in salah? What will you change at the next prayer?"
+                            "I chose my phone / entertainment" -> "The screen can wait. Your time with Allah deserves a place in your day."
+                            "Work took priority" -> "Your responsibilities matter. Can you plan a short prayer break before the next prayer?"
+                            "I overslept" -> "Rest matters too. Consider an earlier bedtime and a reliable alarm."
+                            "I forgot" -> "A reminder can help. Set one before the next prayer and return with intention."
+                            "Illness or genuine hardship" -> "Allah knows your hardship. Seek reliable guidance about prayer accommodations."
+                            "Other" -> "What prevented you, and what practical step will help next time?"
+                            else -> "Choose what truly happened. This is for self-accountability, not judgment."
+                        },
+                        color = SalahTextSecondary, fontSize = 13.sp, lineHeight = 19.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Do not lose hope in Allah's mercy (Qur'an 39:53).",
+                        color = SalahEmeraldLight, fontSize = 12.sp)
+                }
+            }
             Spacer(modifier = Modifier.height(18.dp))
 
             // Explanation Text Box
