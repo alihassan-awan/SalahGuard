@@ -36,6 +36,7 @@ fun AlarmScreen(
     onSnoozeClick: () -> Unit,
     onNotPrayedClick: () -> Unit,
     onViewPrayerTimeClick: () -> Unit,
+    prayerName: String = "Zuhr",
     modifier: Modifier = Modifier
 ) {
     // Glowing pulse for center sun
@@ -129,7 +130,7 @@ fun AlarmScreen(
 
             // Time & Date Header
             Text(
-                text = "1:30 PM",
+                text = java.text.SimpleDateFormat("h:mm a", java.util.Locale.US).format(java.util.Date()),
                 style = MaterialTheme.typography.displayLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 38.sp,
@@ -168,7 +169,7 @@ fun AlarmScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Zuhr",
+                text = prayerName,
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 32.sp,
