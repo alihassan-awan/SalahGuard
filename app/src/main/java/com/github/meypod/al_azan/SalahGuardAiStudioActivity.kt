@@ -10,6 +10,7 @@ import com.example.ui.theme.SalahGuardTheme
 class SalahGuardAiStudioActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SalahGuardPrayerScheduler.reschedule(this)
         setContent { SalahGuardTheme { AppNavigation() } }
     }
 }
