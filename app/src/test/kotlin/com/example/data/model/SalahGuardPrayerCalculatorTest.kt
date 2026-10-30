@@ -34,6 +34,29 @@ class SalahGuardPrayerCalculatorTest {
             minutes.zipWithNext().all { (a, b) -> a < b })
     }
 
+    @Test fun hanafiAsrIsLaterThanStandardAsr() {
+        val coordinates = "33.6844,73.0479"
+        val standard = SalahGuardPrayerCalculator.calculateForCoordinates(
+            coordinates, method, "Standard (Shafi'i, Maliki, Hanbali)", date, zone)!!
+        val hanafi = SalahGuardPrayerCalculator.calculateForCoordinates(
+            coordinates, method, "Hanafi", date, zone)!!
+        fun minutes(value: String): Int {
+            val parts = value.split(":")
+            return parts[0].toInt() * 60 + parts[1].toInt()
+        }
+        assertTrue("Hanafi Asr should occur after standard Asr",
+            minutes(hanafi.getValue("Asr")) > minutes(standard.getValue("Asr")))
+    }
+
+    @Test fun nextDayCalculationUsesItsOwnDate() {
+        val today = SalahGuardPrayerCalculator.calculateForCoordinates(
+            "33.6844,73.0479", method, "Hanafi", date, zone)!!
+        val laterDate = SalahGuardPrayerCalculator.calculateForCoordinates(
+            "33.6844,73.0479", method, "Hanafi", date.plusDays(30), zone)!!
+        assertNotEquals("Date-dependent timetable must change over a month",
+            today, laterDate)
+    }
+
     @Test fun manualTimetableRemainsProtected() {
         assertFalse(SalahGuardPrayerCalculator.canAutoApply("manual", true))
         assertTrue(SalahGuardPrayerCalculator.canAutoApply("calculated", true))
