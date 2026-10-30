@@ -30,6 +30,7 @@ import com.example.data.model.PrayerScheduleItem
 import com.example.data.model.PrayerStatus
 import com.example.data.model.PrayerType
 import com.example.data.model.SalahGuardStore
+import com.example.data.model.SalahGuardPrayerCalculator
 import com.example.data.model.DailyHadith
 import androidx.compose.ui.platform.LocalContext
 import java.util.Calendar
@@ -87,8 +88,22 @@ fun HomeScreen(
         val pair = v.split(":")
         pair[0].toInt() * 3600 + pair[1].toInt() * 60
     }
-    val nextIndex = seconds.indices.minByOrNull { (seconds[it] - currentSeconds + 86400) % 86400 } ?: 0
-    val countdownSeconds = (seconds[nextIndex] - currentSeconds + 86400) % 86400
+    val preferences = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
+    val configured = preferences.getBoolean("manual_schedule_enabled", false)
+    val calculated = preferences.getString("timetable_mode", "manual") == "calculated"
+    val zoneNow = java.time.ZonedDateTime.now()
+    val todayTimes = SalahGuardStore.names.zip(values).toMap()
+    val tomorrowTimes = if (configured && calculated)
+        SalahGuardPrayerCalculator.calculate(context, zoneNow.toLocalDate().plusDays(1))
+            ?: todayTimes
+    else todayTimes
+    val nextOccurrence = if (configured)
+        SalahGuardPrayerCalculator.nextPrayerOccurrence(zoneNow, todayTimes, tomorrowTimes)
+    else null
+    val nextIndex = SalahGuardStore.names.indexOf(nextOccurrence?.first).coerceAtLeast(0)
+    val countdownSeconds = if (nextOccurrence != null)
+        ((nextOccurrence.second - System.currentTimeMillis()).coerceAtLeast(0L) / 1000).toInt()
+    else 0
     val countdownFormatted = "%02d:%02d:%02d".format(Locale.US,
         countdownSeconds / 3600, (countdownSeconds % 3600) / 60, countdownSeconds % 60)
     val prayers = types.mapIndexed { i, type ->
@@ -102,10 +117,12 @@ fun HomeScreen(
             },
             isNext = i == nextIndex)
     }
-    val isScheduleConfigured = context.getSharedPreferences("salahguard_v03", android.content.Context.MODE_PRIVATE)
-        .getBoolean("manual_schedule_enabled", false)
+    val isScheduleConfigured = configured
     val nextPrayerName = if (isScheduleConfigured) SalahGuardStore.names[nextIndex] else "Set prayer times"
-    val nextPrayerTime = if (isScheduleConfigured) SalahGuardStore.display(values[nextIndex], SalahGuardStore.is24(context)) else "--:--"
+    val nextPrayerTime = if (isScheduleConfigured) SalahGuardStore.display(
+        (if (nextOccurrence != null && nextOccurrence.second > java.time.ZonedDateTime.now().toLocalDate().atTime(23,59,59).atZone(zoneNow.zone).toInstant().toEpochMilli())
+            tomorrowTimes[nextOccurrence.first] else values[nextIndex]) ?: values[nextIndex],
+        SalahGuardStore.is24(context)) else "--:--"
 
     Scaffold(
         containerColor = SalahDarkBg,
@@ -162,7 +179,7 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Manual timetable • " + SalahGuardStore.city(context),
+                text = (if (calculated) "Calculated timetable" else "Manual timetable") + " • " + SalahGuardStore.city(context),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = SalahTextSecondary,
                     fontSize = 13.sp
