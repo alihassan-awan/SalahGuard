@@ -45,6 +45,7 @@ fun NotPrayedReasonScreen(
     var selectedReason by remember { mutableStateOf("") }
     var explanationText by remember { mutableStateOf("") }
     val maxChars = 200
+    var showValidation by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -90,8 +91,8 @@ fun NotPrayedReasonScreen(
 
                 // Submit Button (Red)
                 Button(
-                    onClick = { if (selectedReason.isNotBlank() && explanationText.trim().length >= 15) onSubmitMissedReason(selectedReason, explanationText.trim()) },
-                    enabled = selectedReason.isNotBlank() && explanationText.trim().length >= 15,
+                    onClick = { if (selectedReason.isNotBlank() && explanationText.trim().length >= 15) onSubmitMissedReason(selectedReason, explanationText.trim()) else showValidation = true },
+
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SalahRed,
@@ -121,6 +122,7 @@ fun NotPrayedReasonScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
+            if (showValidation) Text("وجہ منتخب کریں اور کم از کم 15 حروف میں اپنی بات لکھیں۔", color = SalahGold, fontSize = 13.sp)
             // Header with amber diamond icon
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -230,7 +232,7 @@ fun NotPrayedReasonScreen(
                         color = SalahTextSecondary, fontSize = 13.sp, lineHeight = 19.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Do not lose hope in Allah's mercy (Qur'an 39:53).",
+                    Text("اللہ کی رحمت سے مایوس نہ ہو۔ (الزمر، 39:53، مفہوم)",
                         color = SalahEmeraldLight, fontSize = 12.sp)
                 }
             }
