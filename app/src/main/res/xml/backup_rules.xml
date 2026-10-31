@@ -1,16 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Auto Backup rules for API 30 and lower (cloud backup only on these versions).
-   https://developer.android.com/guide/topics/data/autobackup
-
-   No <include> means "back up everything by default". We keep the whole files/mmkv
-   folder (the single MMKV store all settings/reminders/locations/counters live in)
-   so its data file and its .crc companion are restored together and stay consistent.
-
-   We only exclude files/audio: user-imported adhan/reminder sounds can be many MB and
-   would push the backup past the 25 MB cloud quota, silently failing the whole backup.
-   Settings that reference a missing custom sound fall back to the default (isResolvable),
-   so dropping them never crashes a restore.
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Privacy-first: prevent backing up GPS coordinates, prayer records and settings. -->
 <full-backup-content>
-    <exclude domain="file" path="audio" />
+    <exclude domain="root" path="." />
 </full-backup-content>
