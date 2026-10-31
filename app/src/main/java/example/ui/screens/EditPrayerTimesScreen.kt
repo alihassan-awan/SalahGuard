@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.app.TimePickerDialog
+import android.content.Context
+import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,15 +38,11 @@ fun EditPrayerTimesScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var fajrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Fajr"))) }
-    var zuhrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Zuhr"))) }
-    var asrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Asr"))) }
-    var maghribTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Maghrib"))) }
-    var ishaTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Isha"))) }
-
-    // Dialog state for editing a time
-    var activeEditingPrayer by remember { mutableStateOf<String?>(null) }
-    var activeEditingTime by remember { mutableStateOf("") }
+    var fajrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Fajr"), SalahGuardStore.is24(context))) }
+    var zuhrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Zuhr"), SalahGuardStore.is24(context))) }
+    var asrTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Asr"), SalahGuardStore.is24(context))) }
+    var maghribTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Maghrib"), SalahGuardStore.is24(context))) }
+    var ishaTime by remember { mutableStateOf(SalahGuardStore.display(SalahGuardStore.get24(context, "Isha"), SalahGuardStore.is24(context))) }
 
     var timeError by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
@@ -99,8 +98,7 @@ fun EditPrayerTimesScreen(
                 prayerType = PrayerType.FAJR,
                 time = fajrTime,
                 onTimeClick = {
-                    activeEditingPrayer = "Fajr"
-                    activeEditingTime = fajrTime
+                    showPrayerTimePicker(context, fajrTime) { fajrTime = it }
                 }
             )
 
@@ -110,8 +108,7 @@ fun EditPrayerTimesScreen(
                 prayerType = PrayerType.ZUHR,
                 time = zuhrTime,
                 onTimeClick = {
-                    activeEditingPrayer = "Zuhr"
-                    activeEditingTime = zuhrTime
+                    showPrayerTimePicker(context, zuhrTime) { zuhrTime = it }
                 }
             )
 
@@ -121,8 +118,7 @@ fun EditPrayerTimesScreen(
                 prayerType = PrayerType.ASR,
                 time = asrTime,
                 onTimeClick = {
-                    activeEditingPrayer = "Asr"
-                    activeEditingTime = asrTime
+                    showPrayerTimePicker(context, asrTime) { asrTime = it }
                 }
             )
 
@@ -132,8 +128,7 @@ fun EditPrayerTimesScreen(
                 prayerType = PrayerType.MAGHRIB,
                 time = maghribTime,
                 onTimeClick = {
-                    activeEditingPrayer = "Maghrib"
-                    activeEditingTime = maghribTime
+                    showPrayerTimePicker(context, maghribTime) { maghribTime = it }
                 }
             )
 
@@ -143,8 +138,7 @@ fun EditPrayerTimesScreen(
                 prayerType = PrayerType.ISHA,
                 time = ishaTime,
                 onTimeClick = {
-                    activeEditingPrayer = "Isha"
-                    activeEditingTime = ishaTime
+                    showPrayerTimePicker(context, ishaTime) { ishaTime = it }
                 }
             )
 
@@ -183,59 +177,24 @@ fun EditPrayerTimesScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Time Edit Dialog
-        if (activeEditingPrayer != null) {
-            AlertDialog(
-                onDismissRequest = { activeEditingPrayer = null },
-                containerColor = SalahDarkSurface,
-                title = {
-                    Text(
-                        text = "Edit ${activeEditingPrayer} Time",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            color = SalahTextWhite,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                },
-                text = {
-                    OutlinedTextField(
-                        value = activeEditingTime,
-                        onValueChange = { activeEditingTime = it },
-                        label = { Text("Time (e.g. 5:20 AM)", color = SalahTextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = SalahTextWhite,
-                            unfocusedTextColor = SalahTextWhite,
-                            focusedBorderColor = SalahEmerald,
-                            unfocusedBorderColor = SalahCardBorder
-                        ),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            when (activeEditingPrayer) {
-                                "Fajr" -> fajrTime = activeEditingTime
-                                "Zuhr" -> zuhrTime = activeEditingTime
-                                "Asr" -> asrTime = activeEditingTime
-                                "Maghrib" -> maghribTime = activeEditingTime
-                                "Isha" -> ishaTime = activeEditingTime
-                            }
-                            activeEditingPrayer = null
-                        }
-                    ) {
-                        Text("Apply", color = SalahEmerald)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { activeEditingPrayer = null }) {
-                        Text("Cancel", color = SalahTextSecondary)
-                    }
-                }
-            )
-        }
+
     }
+}
+
+/**
+ * Native clock picker: hour/minute dial plus AM/PM in 12-hour mode.
+ * Values remain unchanged until the user confirms OK.
+ */
+private fun showPrayerTimePicker(context: Context, currentTime: String, onSelected: (String) -> Unit) {
+    val time = SalahGuardStore.parse(currentTime) ?: "12:00"
+    val parts = time.split(":")
+    val hour = parts[0].toInt()
+    val minute = parts[1].toInt()
+    val is24Hour = SalahGuardStore.is24(context)
+    TimePickerDialog(context, { _, chosenHour, chosenMinute ->
+        val twentyFour = String.format(Locale.US, "%02d:%02d", chosenHour, chosenMinute)
+        onSelected(SalahGuardStore.display(twentyFour, is24Hour))
+    }, hour, minute, is24Hour).show()
 }
 
 @Composable
