@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.example.data.model.SalahGuardStore
@@ -24,6 +25,7 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
         val date = intent.getStringExtra("prayer_date")
             ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull()?.toString() }
             ?: SalahGuardStore.today()
+        Log.i("SalahGuardPrayer", "real alarm activity opened for $prayer on $date")
         setContent {
             var page by remember { mutableStateOf("alarm") }
             SalahGuardTheme {
@@ -39,6 +41,7 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                                 .putLong("verified_at_${date}_${prayer}", System.currentTimeMillis())
                                 .remove("reason_${date}_${prayer}")
                                 .commit()
+                            Log.i("SalahGuardPrayer", "prayed confirmation saved for $prayer on $date")
                             Toast.makeText(this, "نماز کی تصدیق محفوظ ہو گئی", Toast.LENGTH_LONG).show()
                             getSystemService(NotificationManager::class.java).cancel(97000 + index)
                             finish()
@@ -54,6 +57,7 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                                 .remove("prayed_detail_${date}_${prayer}")
                                 .remove("verified_at_${date}_${prayer}")
                                 .commit()
+                            Log.i("SalahGuardPrayer", "missed reason saved for $prayer on $date")
                             Toast.makeText(this, "آپ کی وجہ محفوظ ہو گئی", Toast.LENGTH_LONG).show()
                             getSystemService(NotificationManager::class.java).cancel(97000 + index)
                             finish()
