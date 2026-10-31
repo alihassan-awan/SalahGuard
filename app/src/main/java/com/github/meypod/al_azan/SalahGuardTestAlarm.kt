@@ -41,6 +41,10 @@ object SalahGuardTestAlarm {
 
     internal fun show(context: Context) {
         val notificationManager = context.getSystemService(NotificationManager::class.java)
+        Log.i("SalahGuardTestAlarm",
+            "notification requested; canUseFullScreenIntent=" +
+                (Build.VERSION.SDK_INT < 34 || notificationManager.canUseFullScreenIntent()) +
+                ", notificationsEnabled=" + notificationManager.areNotificationsEnabled())
         val sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -76,6 +80,7 @@ object SalahGuardTestAlarm {
             .setOngoing(true)
             .build()
         notificationManager.notify(90501, notification)
+        Log.i("SalahGuardTestAlarm", "test alarm notification posted")
     }
 }
 
