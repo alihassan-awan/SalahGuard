@@ -21,7 +21,9 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
         val prayer = intent.getStringExtra("prayer") ?: run { finish(); return }
         if (prayer !in SalahGuardStore.names) { finish(); return }
         val index = SalahGuardStore.names.indexOf(prayer)
-        val date = SalahGuardStore.today()
+        val date = intent.getStringExtra("prayer_date")
+            ?.takeIf { it.matches(Regex("""\\d{4}-\\d{2}-\\d{2}""")) }
+            ?: SalahGuardStore.today()
         setContent {
             var page by remember { mutableStateOf("alarm") }
             SalahGuardTheme {
@@ -63,8 +65,8 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                         onPrayedClick = { page = "verify" },
                         onNotPrayedClick = { page = "reason" },
                         onSnoozeClick = {
-                            SalahGuardStore.recordSnooze(this, prayer)
-                            SalahGuardPrayerScheduler.snooze(this, prayer)
+                            SalahGuardStore.recordSnooze(this, prayer, date)
+                            SalahGuardPrayerScheduler.snooze(this, prayer, date)
                             finish()
                         },
                         onViewPrayerTimeClick = { finish() }
