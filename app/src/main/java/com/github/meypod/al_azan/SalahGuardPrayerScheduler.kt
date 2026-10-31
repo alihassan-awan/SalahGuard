@@ -154,7 +154,7 @@ class SalahGuardPrayerReceiver : BroadcastReceiver() {
             }
         }
         val prayerDate = intent.getStringExtra("prayer_date")
-            ?.takeIf { it.matches(Regex("""\\d{4}-\\d{2}-\\d{2}""")) }
+            ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull()?.toString() }
             ?: SalahGuardStore.today()
         Log.i("SalahGuardPrayer", "receiver fired: $prayer on $prayerDate; snoozed=" +
             intent.getBooleanExtra("snoozed", false))
