@@ -58,8 +58,8 @@ object SalahGuardStore {
     fun is24(context: Context) = prefs(context).getBoolean("time_format_24", false)
     fun set24Format(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean("time_format_24", value).apply()
-    fun recordSnooze(context: Context, prayer: String) {
-        val key = "snooze_${today()}_$prayer"
+    fun recordSnooze(context: Context, prayer: String, prayerDate: String = today()) {
+        val key = "snooze_${prayerDate}_$prayer"
         val p = prefs(context)
         p.edit().putInt(key, p.getInt(key, 0) + 1).apply()
     }
