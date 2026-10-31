@@ -13,6 +13,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.Log
 import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
@@ -35,6 +36,7 @@ class SalahGuardAccountabilityActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.i("SalahGuardTestAlarm", "test accountability activity opened")
         if (Build.VERSION.SDK_INT >= 27) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
