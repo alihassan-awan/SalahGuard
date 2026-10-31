@@ -12,6 +12,9 @@ import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.util.Log
+import java.text.SimpleDateFormat
+import java.util.Locale
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.data.model.SalahGuardStore
@@ -40,11 +43,6 @@ object SalahGuardPrayerScheduler {
         val index = SalahGuardStore.names.indexOf(name)
         val alarm = context.getSystemService(AlarmManager::class.java)
         run {
-            val intent = Intent(context, SalahGuardPrayerReceiver::class.java).setAction(ACTION)
-                .putExtra("prayer", name)
-            val pending = PendingIntent.getBroadcast(context, 94000 + index, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            alarm.cancel(pending)
             val now = System.currentTimeMillis()
             val todayValues = SalahGuardStore.get24(context, name).split(":")
             val target = Calendar.getInstance().apply {
@@ -67,7 +65,15 @@ object SalahGuardPrayerScheduler {
                     }
                 }
             }
+            val prayerDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(target.time)
+            val intent = Intent(context, SalahGuardPrayerReceiver::class.java).setAction(ACTION)
+                .putExtra("prayer", name)
+                .putExtra("prayer_date", prayerDate)
+            val pending = PendingIntent.getBroadcast(context, 94000 + index, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            alarm.cancel(pending)
             schedule(alarm, target.timeInMillis, pending)
+            Log.i("SalahGuardPrayer", "scheduled $name on $prayerDate at ${target.timeInMillis}")
         }
     }
     private fun schedule(alarm: AlarmManager, time: Long, pending: PendingIntent) {
@@ -79,18 +85,19 @@ object SalahGuardPrayerScheduler {
             alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, time, pending)
         }
     }
-    fun snooze(context: Context, name: String) {
+    fun snooze(context: Context, name: String, prayerDate: String = SalahGuardStore.today()) {
         val alarm = context.getSystemService(AlarmManager::class.java)
         val index = SalahGuardStore.names.indexOf(name)
         if (index < 0) return
         val intent = Intent(context, SalahGuardPrayerReceiver::class.java).setAction(ACTION)
             .putExtra("prayer", name).putExtra("snoozed", true)
+            .putExtra("prayer_date", prayerDate)
         val pending = PendingIntent.getBroadcast(context, 95000 + index, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val minutes = SalahGuardStore.setting(context, "alarm_snooze", "10 minutes").substringBefore(" ").toLongOrNull() ?: 10L
         schedule(alarm, System.currentTimeMillis() + minutes * 60_000L, pending)
     }
-    internal fun notifyPrayer(context: Context, name: String) {
+    internal fun notifyPrayer(context: Context, name: String, prayerDate: String) {
         val notifications = context.getSystemService(NotificationManager::class.java)
         val silent = SalahGuardStore.setting(context, "alarm_sound", "System alarm") == "Silent"
         val vibrate = SalahGuardStore.setting(context, "alarm_vibrate", "true") == "true"
@@ -111,8 +118,12 @@ object SalahGuardPrayerScheduler {
             PackageManager.PERMISSION_GRANTED) return
         val launch = PendingIntent.getActivity(context, 96000 + SalahGuardStore.names.indexOf(name),
             Intent(context, SalahGuardRealPrayerActivity::class.java)
-                .putExtra("prayer", name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                .putExtra("prayer", name)
+                .putExtra("prayer_date", prayerDate)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        Log.i("SalahGuardPrayer", "notification requested for $name on $prayerDate; " +
+            "fsiAllowed=" + (Build.VERSION.SDK_INT < 34 || notifications.canUseFullScreenIntent()))
         notifications.notify(97000 + SalahGuardStore.names.indexOf(name),
             NotificationCompat.Builder(context, channel)
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -142,7 +153,12 @@ class SalahGuardPrayerReceiver : BroadcastReceiver() {
                 SalahGuardPrayerScheduler.schedulePrayer(context, prayer)
             }
         }
-        SalahGuardPrayerScheduler.notifyPrayer(context, prayer)
+        val prayerDate = intent.getStringExtra("prayer_date")
+            ?.takeIf { it.matches(Regex("""\\d{4}-\\d{2}-\\d{2}""")) }
+            ?: SalahGuardStore.today()
+        Log.i("SalahGuardPrayer", "receiver fired: $prayer on $prayerDate; snoozed=" +
+            intent.getBooleanExtra("snoozed", false))
+        SalahGuardPrayerScheduler.notifyPrayer(context, prayer, prayerDate)
     }
 }
 class SalahGuardPrayerRescheduleReceiver : BroadcastReceiver() {
