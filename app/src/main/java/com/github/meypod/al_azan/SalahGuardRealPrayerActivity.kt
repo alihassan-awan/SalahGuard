@@ -115,6 +115,8 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
                     )
                     else -> AlarmScreen(
                         prayerName = prayer,
+                        snoozeMinutes = SalahGuardStore.setting(this, "alarm_snooze", "10 minutes")
+                            .substringBefore(" ").toIntOrNull() ?: 10,
                         onCloseClick = { stopAlarmSound(); finish() },
                         onPrayedClick = { stopAlarmSound(); page = "verify" },
                         onNotPrayedClick = { stopAlarmSound(); page = "reason" },
