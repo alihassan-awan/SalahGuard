@@ -22,7 +22,7 @@ class SalahGuardRealPrayerActivity : ComponentActivity() {
         if (prayer !in SalahGuardStore.names) { finish(); return }
         val index = SalahGuardStore.names.indexOf(prayer)
         val date = intent.getStringExtra("prayer_date")
-            ?.takeIf { it.matches(Regex("""\\d{4}-\\d{2}-\\d{2}""")) }
+            ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull()?.toString() }
             ?: SalahGuardStore.today()
         setContent {
             var page by remember { mutableStateOf("alarm") }
