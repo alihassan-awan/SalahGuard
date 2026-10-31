@@ -37,6 +37,7 @@ fun AlarmScreen(
     onNotPrayedClick: () -> Unit,
     onViewPrayerTimeClick: () -> Unit,
     prayerName: String = "Zuhr",
+    snoozeMinutes: Int = 10,
     modifier: Modifier = Modifier
 ) {
     // Glowing pulse for center sun
@@ -139,7 +140,8 @@ fun AlarmScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Thursday, 29 Oct 2026",
+                text = java.text.SimpleDateFormat("EEEE, dd MMM yyyy", java.util.Locale.ENGLISH)
+                    .format(java.util.Date()),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = SalahTextSecondary,
                     fontSize = 14.sp
@@ -274,7 +276,7 @@ fun AlarmScreen(
                                 )
                             )
                             Text(
-                                text = "10 minutes",
+                                text = "$snoozeMinutes minutes",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 11.sp,
                                     lineHeight = 12.sp
